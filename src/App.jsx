@@ -10,6 +10,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Navbar from "./components/layout/Navbar";
 import Courses from "./pages/Courses";
+import CourseDetails from "./components/courses/CourseDetails";
+import CoursePage from "./pages/CoursePage";
 
 const App = () => {
   
@@ -102,7 +104,24 @@ const App = () => {
                 </motion.div>
               }
             />
+            <Route
+              path="/coursedetail"
+              element={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: 1,
+                    transition: { duration: 1.5 },
+                  }}
+                >
+                  <DashboardLayout>
+                    <CoursePage />
+                  </DashboardLayout>
+                </motion.div>
+              }
+            />
           </Routes>
+          
         )}
       </div>
     </AnimatePresence>
