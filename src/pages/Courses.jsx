@@ -1,98 +1,222 @@
+/* eslint-disable react/prop-types */
+import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faChevronDown,
+  faBolt,
+  faRobot,
+  faMicrochip,
+  faTools,
+  faBook,
+  faFilePdf,
+  faGlobe,
+  faLaptopCode,
+  faClipboardCheck,
+  faOilCan,
+  faArrowRight,
+} from "@fortawesome/free-solid-svg-icons";
+import { motion, AnimatePresence } from "framer-motion";
+import courses from "../data/courses";
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronDown, faArrowRight, faPlay } from '@fortawesome/free-solid-svg-icons';
+const iconMap = {
+  bolt: faBolt,
+  robot: faRobot,
+  microchip: faMicrochip,
+  tools: faTools,
+  book: faBook,
+  "file-pdf": faFilePdf,
+  globe: faGlobe,
+  "laptop-code": faLaptopCode,
+  "clipboard-check": faClipboardCheck,
+  "oil-can": faOilCan,
+};
 
-// eslint-disable-next-line react/prop-types
-const CourseCard = ({ icon, color, title, description, progress, lastAccess }) => {
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { 
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      duration: 0.5
+    }
+  },
+  hover: {
+    y: -5,
+    scale: 1.02,
+    transition: { 
+      type: "spring",
+      stiffness: 300,
+      duration: 0.3
+    }
+  }
+};
+
+const CourseCard = ({ course }) => {
   return (
-    <div className="group bg-white shadow-lg rounded-xl p-8 hover:shadow-xl transition-all duration-300 ease-out hover:-translate-y-2 cursor-pointer h-[320px] flex flex-col justify-between">
-      <div>
-        <div className="flex justify-between items-start mb-6">
-          <FontAwesomeIcon 
-            icon={icon} 
-            className={`text-3xl ${color} transition-transform duration-300 group-hover:scale-110`} 
+    <Link to={`/courses/${course.id}`} className="block h-full group">
+      <motion.div
+        className="relative h-full bg-gradient-to-b from-white to-gray-50 shadow-lg rounded-2xl p-6 cursor-pointer flex flex-col justify-between overflow-hidden transform transition-all duration-300 hover:shadow-2xl"
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        whileHover="hover"
+      >
+        {/* Efecto de brillo al hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div 
+            className="absolute w-32 h-32 bg-gradient-radial from-white/30 to-transparent"
+            style={{
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
           />
-          <span className="text-sm text-gray-600 font-medium">{lastAccess}</span>
         </div>
-        <h3 className="text-2xl font-bold mb-4 text-gray-900">{title}</h3>
-        <p className="text-gray-600 mb-6 text-base leading-relaxed">{description}</p>
-      </div>
-      
-      <div>
-        <div className="mb-4">
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
-              className={`h-3 rounded-full ${color} transition-all duration-500 ease-out`} 
-              style={{ width: `${progress}%` }}
-            ></div>
+
+        {/* Icono animado */}
+        <motion.div
+          className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-sm bg-white/30"
+          style={{ color: course.color }}
+          whileHover={{ scale: 1.1, rotate: 10 }}
+        >
+          <FontAwesomeIcon
+            icon={iconMap[course.icon]}
+            className="text-xl"
+          />
+        </motion.div>
+
+        {/* Contenido principal */}
+        <div className="h-full flex flex-col pt-4 space-y-4">
+          <div className="flex-1">
+            <span
+              className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color: course.color }}
+            >
+              {course.duration}
+            </span>
+            
+            <motion.h3 
+              className="text-2xl font-bold text-gray-900 mt-2 line-clamp-2 leading-tight"
+              layoutId={`title-${course.id}`}
+            >
+              {course.title}
+            </motion.h3>
+            
+            <motion.p 
+              className="text-gray-600 text-sm line-clamp-3 leading-relaxed mt-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              {course.description}
+            </motion.p>
           </div>
-          <p className="text-sm mt-2 text-gray-600 font-medium">{progress}% Completado</p>
+
+          {/* Sección inferior */}
+          <motion.div className="border-t pt-4 space-y-4">
+            <div className="mb-2">
+              <div className="flex justify-between text-xs text-gray-500 mb-2">
+                <span>Progreso</span>
+                <span>{course.progress}%</span>
+              </div>
+              <motion.div
+                className="h-2 bg-gray-200 rounded-full overflow-hidden"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, type: "spring" }}
+              >
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: course.color }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${course.progress}%` }}
+                  transition={{ duration: 1.5, type: "spring" }}
+                />
+              </motion.div>
+            </div>
+
+            <motion.button
+              className="w-full cursor-pointer py-3 text-white rounded-xl font-medium flex items-center justify-center relative overflow-hidden"
+              style={{ backgroundColor: course.color }}
+              whileHover={{ 
+                scale: 1.02,
+                boxShadow: `0 8px 24px ${course.color}40`
+              }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Ver curso completo
+                <motion.span
+                  initial={{ x: 0 }}
+                  animate={{ x: 0 }}
+                  whileHover={{ x: 5 }}
+                >
+                  <FontAwesomeIcon icon={faArrowRight} className="text-sm" />
+                </motion.span>
+              </span>
+              <div 
+                className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              />
+            </motion.button>
+          </motion.div>
         </div>
-        <button className={`w-full ${color} bg-opacity-90 hover:bg-opacity-100 py-3 rounded-xl 
-          transition-all duration-300 text-white font-semibold flex items-center justify-center
-          hover:scale-[1.02] hover:shadow-md`}>
-          {progress > 0 ? 'Continuar' : 'Comenzar'}
-          <FontAwesomeIcon 
-            icon={progress > 0 ? faArrowRight : faPlay} 
-            className="ml-3 transition-transform duration-300 group-hover:translate-x-1" 
-          />
-        </button>
-      </div>
-    </div>
+      </motion.div>
+    </Link>
   );
 };
 
 const Courses = () => {
-  const courses = [
-    {
-      icon: 'bolt',
-      color: 'bg-blue-500',
-      title: 'SEVA',
-      description: 'Sistema Electrónico de Verificación Automática',
-      progress: 65,
-      lastAccess: 'Último acceso: 2d atrás'
-    },
-    {
-      icon: 'robot',
-      color: 'bg-green-500',
-      title: 'Fabricación Digital',
-      description: 'Tecnologías de producción asistida por computadora',
-      progress: 22,
-      lastAccess: 'Nuevo contenido'
-    },
-    {
-      icon: 'book',
-      color: 'bg-purple-500',
-      title: 'Diseño Gráfico',
-      description: 'Fundamentos de diseño y herramientas digitales',
-      progress: 50,
-      lastAccess: 'Último acceso: 1d atrás'
-    },
-    {
-      icon: 'robot',
-      color: 'bg-yellow-500',
-      title: 'Robótica Básica',
-      description: 'Introducción a la robótica y programación de robots',
-      progress: 25,
-      lastAccess: 'Nuevo contenido'
-    }
-  ];
+  const staggerDelay = 0.15;
 
   return (
-    <section className="p-8 max-w-7xl mx-auto">
-      <div className="mb-12 flex justify-between items-center">
-        <h2 className="text-3xl font-bold text-gray-900">Tus Cursos</h2>
-        <button className="bg-gray-100 px-5 py-2.5 rounded-xl hover:bg-gray-200 
-          transition-colors duration-300 text-gray-700 font-medium flex items-center">
-          Ordenar por 
-          <FontAwesomeIcon icon={faChevronDown} className="ml-3 transition-transform duration-200" />
-        </button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {courses.map((course, index) => (
-          <CourseCard key={index} {...course} />
-        ))}
-      </div>
+    <section className="px-4 py-12 max-w-7xl mx-auto">
+      <motion.div
+        className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <motion.h2
+          className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          Tus Cursos
+        </motion.h2>
+        
+        
+      </motion.div>
+
+      <AnimatePresence>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {courses.map((course, index) => (
+            <motion.div
+              key={course.id}
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { 
+                  opacity: 1, 
+                  y: 0,
+                  transition: { 
+                    delay: index * staggerDelay,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 20
+                  } 
+                }
+              }}
+              whileHover="hover"
+            >
+              <CourseCard course={course} />
+            </motion.div>
+          ))}
+        </div>
+      </AnimatePresence>
     </section>
   );
 };

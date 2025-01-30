@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  BrowserRouter as Router,
+  
   Routes,
   Route,
   useLocation,
@@ -10,35 +10,15 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Navbar from "./components/layout/Navbar";
 import Courses from "./pages/Courses";
-import CourseDetails from "./components/courses/CourseDetails";
 import CoursePage from "./pages/CoursePage";
+import Loader from "./components/ui/Loader";
 
 const App = () => {
   
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
-  function Loader() {
-    return (
-      <motion.div
-        initial={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-[#d62828] flex items-center justify-center"
-      >
-        <motion.div
-          animate={{ 
-            rotate: 360,
-            scale: [1, 1.2, 1]
-          }}
-          transition={{ 
-            duration: 1.5,
-            repeat: Infinity 
-          }}
-          className="h-16 w-16 border-4 border-[#fcbf49] border-t-transparent rounded-full"
-        />
-      </motion.div>
-    );
-  }
+  
 
   const handleLogin = () => {
     setIsLoading(true);
@@ -105,14 +85,11 @@ const App = () => {
               }
             />
             <Route
-              path="/coursedetail"
+              path="/courses/:id"
               element={
                 <motion.div
                   initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: 1,
-                    transition: { duration: 1.5 },
-                  }}
+                  animate={{ opacity: 1, transition: { duration: 1.5 } }}
                 >
                   <DashboardLayout>
                     <CoursePage />
