@@ -1,41 +1,80 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import CourseHeader from '../components/courses/CourseHeader';
-import ModuleList from '../components/module/ModuleList';
-import ProgressSidebar from '../components/courses/ProgressSidebar';
-import ModuleModal from '../components/module/ModuleModal';
-import courses from '../data/courses';
-import { calculateCourseProgress } from '../utils/courseUtils';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import CourseHeader from "../components/courses/CourseHeader";
+import ModuleList from "../components/module/ModuleList";
+import ProgressSidebar from "../components/courses/ProgressSidebar";
+import ModuleModal from "../components/module/ModuleModal";
+import courses from "../data/courses";
+import { calculateCourseProgress } from "../utils/courseUtils";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const CoursePage = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [selectedModule, setSelectedModule] = useState(null);
   const [course, setCourse] = useState(null);
+  const initialModuleLoaded = useRef(false);
 
+  // Cargar el curso solo una vez al montar
   useEffect(() => {
-    const originalCourse = courses.find(c => c.id === Number(id));
+    const originalCourse = courses.find((c) => c.id === Number(id));
     if (originalCourse) {
       setCourse(calculateCourseProgress(originalCourse));
     }
   }, [id]);
 
-  const handleToggleActivity = (moduleId, activityIndex) => {
-    setCourse(prev => {
-      const updatedModules = prev.modules.map(module => {
+  // Efecto para manejar parámetro de módulo inicial
+  useEffect(() => {
+    if (course && !initialModuleLoaded.current) {
+      const moduleId = searchParams.get("module");
+      if (moduleId) {
+        const module = course.modules.find((m) => m.id === Number(moduleId));
+        if (module) {
+          setSelectedModule(module);
+        }
+      }
+      initialModuleLoaded.current = true;
+    }
+  }, [course, searchParams]);
+
+  // Manejo de cierre del modal optimizado
+  const handleCloseModal = useCallback(() => {
+    setSelectedModule((prev) => {
+      if (prev) {
+        const newSearchParams = new URLSearchParams(window.location.search);
+        newSearchParams.delete("module");
+        window.history.replaceState(null, "", `?${newSearchParams.toString()}`);
+      }
+      return null;
+    });
+  }, []);
+
+  // Función para selección de módulo optimizada
+  const handleModuleSelect = useCallback((module) => {
+    setSelectedModule(module);
+    const newSearchParams = new URLSearchParams(window.location.search);
+    newSearchParams.set("module", module.id);
+    window.history.replaceState(null, "", `?${newSearchParams.toString()}`);
+  }, []);
+
+  // Actualización de actividades optimizada
+  const handleToggleActivity = useCallback((moduleId, activityIndex) => {
+    setCourse((prev) => {
+      const updatedModules = prev.modules.map((module) => {
         if (module.id === moduleId) {
-          const updatedActivities = module.activities.map((activity, index) => 
-            index === activityIndex ? {...activity, completed: !activity.completed} : activity
-          );
-          return {...module, activities: updatedActivities};
+          const updatedActivities = [...module.activities];
+          updatedActivities[activityIndex] = {
+            ...updatedActivities[activityIndex],
+            completed: !updatedActivities[activityIndex].completed,
+          };
+          return { ...module, activities: updatedActivities };
         }
         return module;
       });
-      
-      return calculateCourseProgress({...prev, modules: updatedModules});
+      return calculateCourseProgress({ ...prev, modules: updatedModules });
     });
-  };
+  }, []);
 
   if (!course) {
     return (
@@ -67,11 +106,11 @@ const CoursePage = () => {
             />
             Módulos del Curso
           </motion.h2>
-          
-          <ModuleList 
-            modules={course.modules} 
-            color={course.color} 
-            onModuleSelect={setSelectedModule} 
+
+          <ModuleList
+            modules={course.modules}
+            color={course.color}
+            onModuleSelect={handleModuleSelect}
           />
         </div>
 
@@ -79,11 +118,14 @@ const CoursePage = () => {
       </div>
 
       {selectedModule && (
-        <ModuleModal 
+        <ModuleModal
+          key={selectedModule.id}
           module={selectedModule}
           color={course.color}
-          onClose={() => setSelectedModule(null)}
-          onToggleActivity={(index) => handleToggleActivity(selectedModule.id, index)}
+          onClose={handleCloseModal}
+          onToggleActivity={(index) =>
+            handleToggleActivity(selectedModule.id, index)
+          }
         />
       )}
     </motion.div>

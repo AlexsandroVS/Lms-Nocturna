@@ -5,7 +5,6 @@ import CriticalDeadlines from "../components/dashboard/CriticalDeadlines";
 import FeaturedResource from "../components/dashboard/FeaturedResource";
 import { motion } from "framer-motion";
 
-
 export default function Dashboard() {
   function WelcomeCard() {
     return (
@@ -15,7 +14,7 @@ export default function Dashboard() {
         className="bg-white p-6 rounded-xl shadow-xl border-l-4 border-[#d62828]"
       >
         <h1 className="text-3xl font-bold mb-2 text-[#003049]">
-          ¡Buenas noches, Usuario!
+          ¡Buenas noches, Darkness!
         </h1>
         <p className="text-gray-600 text-xl">
           ¡Bienvenido a nuestra plataforma de aprendizaje! Nos alegra mucho
@@ -30,14 +29,17 @@ export default function Dashboard() {
       <div className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <WelcomeCard />
-          <AcademicProgress 
+          <AcademicProgress
             courses={[
               { name: "Energias Renovables", progress: 75, color: "#48CAE4" },
               { name: "Robótica Básica", progress: 65, color: "#8AC926" },
               { name: "Programación de PLC", progress: 25, color: "#FFBA08" },
-              { name: "Mantenimiento Industrial", progress: 95, color: "#d00000" },
-              
-            ]} 
+              {
+                name: "Mantenimiento Industrial",
+                progress: 95,
+                color: "#d00000",
+              },
+            ]}
           />
         </div>
 
@@ -47,8 +49,6 @@ export default function Dashboard() {
           <CriticalDeadlines />
           <FeaturedResource />
         </div>
-
-        
       </div>
     </div>
   );

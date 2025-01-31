@@ -1,62 +1,72 @@
-import { motion } from "framer-motion";
-import { useState } from "react";
+/* eslint-disable react/no-unknown-property */
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEnvelope,
   faLock,
-  faArrowRight,
-  faUserShield,
+  faCheckCircle,
+  faTimesCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import fondoLogin from "../assets/fondo-login.jpeg";
+import { useAuth } from "../context/AuthContext";
+import fondoLogin from "../assets/fondo-login.jpg";
 import logoRojo from "../assets/logo.png";
 
 function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [status, setStatus] = useState({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isValid, setIsValid] = useState(false);
 
+  // Función para validar credenciales
   const validateCredentials = (email, password) => {
-    // Validación de ejemplo (reemplazar con conexión a backend)
-    const isAdmin = email === "admin@example.com" && password === "admin123";
-    const isUser = email === "user@example.com" && password === "user123";
-    
-    if (!isAdmin && !isUser) {
-      throw new Error("Credenciales inválidas");
-    }
-    
-    return {
-      role: isAdmin ? "admin" : "user",
-      token: "fake-jwt-token",
-    };
+    return (
+      (email === "admin@example.com" && password === "admin123") ||
+      (email === "user@example.com" && password === "user123")
+    );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
+  // Efecto que se ejecuta automáticamente al escribir en los inputs
+  useEffect(() => {
+    if (email && password) {
+      const valid = validateCredentials(email, password);
+      setIsValid(valid);
+      setStatus({
+        type: valid ? "success" : "error",
+        message: valid
+          ? "Credenciales verificadas"
+          : "Credenciales incorrectas",
+      });
 
-    try {
-      const { role } = validateCredentials(email, password);
-      
-      // Simular llamada API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      localStorage.setItem("userRole", role);
-      localStorage.setItem("authToken", "fake-token");
-      
-      navigate(role === "admin" ? "/dashboard" : "/dashboard");
-    } catch (err) {
-      setError(err.message);
-      setIsSubmitting(false);
+      // Si las credenciales son correctas, redirigir automáticamente
+      if (valid) {
+        setIsSubmitting(true);
+        setTimeout(() => {
+          localStorage.setItem("authToken", "fake-token");
+          const role = email === "admin@example.com" ? "admin" : "user";
+          navigate(role === "admin" ? "/admin/dashboard" : "/dashboard");
+        }, 1000);
+      }
+    } else {
+      setStatus({ type: null, message: "" });
+      setIsValid(false);
     }
+  }, [email, password, navigate]);
+
+  // Función para obtener el estilo de los inputs
+  const getInputStyle = () => {
+    if (!email || !password) return "";
+    return isValid
+      ? "ring-2 ring-green-500 ring-opacity-50"
+      : "ring-2 ring-red-500 ring-opacity-50";
   };
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+      className="min-h-screen flex items-center justify-center bg-cover bg-center relative overflow-hidden"
       style={{
         backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${fondoLogin})`,
       }}
@@ -64,34 +74,58 @@ function Login() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0 }}
-        className="bg-black/30 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-96 min-h-[480px] flex flex-col justify-center"
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-black/40 backdrop-blur-sm border border-white/10 relative p-8 rounded-2xl shadow-2xl w-96 min-h-[480px] flex flex-col justify-center"
       >
         <div className="flex justify-center mb-10">
-          <img src={logoRojo} alt="Logo" className="h-24" />
+          <img src={logoRojo} alt="Logo" className="h-24 rounded-xl" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Mensaje de error */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="bg-red-500/20 p-3 rounded-lg border border-red-500 flex items-center gap-2"
-            >
-              <FontAwesomeIcon icon={faUserShield} className="text-red-500" />
-              <span className="text-red-200 text-sm">{error}</span>
-            </motion.div>
-          )}
+        <form className="space-y-8">
+          <AnimatePresence>
+            {status.message && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className={`p-3 rounded-lg flex items-center gap-2 ${
+                  status.type === "success"
+                    ? "bg-green-500/20 border border-green-500"
+                    : "bg-red-500/20 border border-red-500"
+                }`}
+              >
+                <FontAwesomeIcon
+                  icon={
+                    status.type === "success" ? faCheckCircle : faTimesCircle
+                  }
+                  className={`text-xl ${
+                    status.type === "success"
+                      ? "text-green-500"
+                      : "text-red-500"
+                  }`}
+                />
+                <span
+                  className={`text-sm ${
+                    status.type === "success"
+                      ? "text-green-200"
+                      : "text-red-200"
+                  }`}
+                >
+                  {status.message}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Input de Email */}
+          {/* Email Input */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="flex rounded-xl overflow-hidden shadow-sm">
+            <div
+              className={`flex rounded-xl overflow-hidden shadow-sm ${getInputStyle()}`}
+            >
               <div className="w-14 bg-[#d62828] flex items-center justify-center">
                 <FontAwesomeIcon
                   icon={faEnvelope}
@@ -105,17 +139,20 @@ function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isSubmitting}
+                autoFocus
               />
             </div>
           </motion.div>
 
-          {/* Input de Contraseña */}
+          {/* Password Input */}
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <div className="flex rounded-xl overflow-hidden shadow-sm">
+            <div
+              className={`flex rounded-xl overflow-hidden shadow-sm ${getInputStyle()}`}
+            >
               <div className="w-14 bg-[#d62828] flex items-center justify-center">
                 <FontAwesomeIcon icon={faLock} className="text-white text-xl" />
               </div>
@@ -128,39 +165,6 @@ function Login() {
                 disabled={isSubmitting}
               />
             </div>
-          </motion.div>
-
-          {/* Botón de Ingreso */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.6, type: "spring", stiffness: 100 }}
-          >
-            <motion.button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3 cursor-pointer bg-[#d62828] text-white rounded-xl hover:bg-[#b32020] transition-colors font-semibold flex items-center justify-center space-x-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              whileHover={!isSubmitting ? { scale: 1.05 } : {}}
-              whileTap={!isSubmitting ? { scale: 0.95 } : {}}
-              transition={{ type: "spring", stiffness: 300, damping: 10 }}
-            >
-              <motion.span
-                initial={{ x: -10, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.8 }}
-              >
-                {isSubmitting ? "Verificando..." : "Ingresar"}
-              </motion.span>
-              {!isSubmitting && (
-                <motion.span
-                  initial={{ x: 10, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  <FontAwesomeIcon icon={faArrowRight} />
-                </motion.span>
-              )}
-            </motion.button>
           </motion.div>
         </form>
       </motion.div>

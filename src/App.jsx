@@ -1,10 +1,6 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
-import {
-  
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -15,11 +11,8 @@ import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
-  
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-
-  
 
   const handleLogin = () => {
     setIsLoading(true);
@@ -39,8 +32,8 @@ const App = () => {
 
   return (
     <AnimatePresence mode="wait">
-      <div 
-        className="min-h-screen" 
+      <div
+        className="min-h-screen"
         style={{
           background: "linear-gradient(135deg, #f7fafc, #edf2f7)",
         }}
@@ -49,10 +42,7 @@ const App = () => {
           <Loader key="loader" />
         ) : (
           <Routes location={location} key={location.pathname}>
-            <Route 
-              path="/" 
-              element={<Login onLogin={handleLogin} />} 
-            />
+            <Route path="/" element={<Login onLogin={handleLogin} />} />
             <Route
               path="/dashboard"
               element={
@@ -112,7 +102,6 @@ const App = () => {
               }
             />
           </Routes>
-          
         )}
       </div>
     </AnimatePresence>
