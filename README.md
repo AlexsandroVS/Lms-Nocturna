@@ -16,6 +16,10 @@ Un sistema moderno para la gestión de cursos técnicos y formación industrial,
 ✅ Sección de perfil personalizable  
 ✅ Modal interactivo para actividades de módulos  
 ✅ Sistema de logros y reconocimientos  
+✅ Redirección inteligente entre cursos y módulos
+✅ Optimización de re-renderizados para mejor rendimiento
+✅ Manejo avanzado de URL con useSearchParams
+✅ Sincronización de estado y URL sin re-renderizados innecesarios
 
 ## Tecnologías Utilizadas
 
@@ -71,3 +75,4 @@ src/
 ├── utils/
 │   └── courseUtils.js
 └── App.jsx
+```
