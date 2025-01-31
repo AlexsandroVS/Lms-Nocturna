@@ -12,6 +12,7 @@ import Navbar from "./components/layout/Navbar";
 import Courses from "./pages/Courses";
 import CoursePage from "./pages/CoursePage";
 import Loader from "./components/ui/Loader";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   
@@ -93,6 +94,19 @@ const App = () => {
                 >
                   <DashboardLayout>
                     <CoursePage />
+                  </DashboardLayout>
+                </motion.div>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1, transition: { duration: 1.5 } }}
+                >
+                  <DashboardLayout>
+                    <ProfilePage />
                   </DashboardLayout>
                 </motion.div>
               }
