@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -12,7 +11,7 @@ import {
 import { AchievementCard } from "../components/profile/ArchivementCard";
 import { StatCard } from "../components/profile/StatCard";
 import { CourseProgressCard } from "../components/profile/CourseProgressCard";
-import { userData } from "../data/userData";
+import { useAuth } from "../context/AuthContext";
 import courses from "../data/courses";
 
 const profileVariants = {
@@ -29,17 +28,27 @@ const itemVariants = {
 };
 
 const ProfilePage = () => {
+  const { currentUser } = useAuth();
+  console.log("Current User:", currentUser); // Verifica en la consola
+
+  if (!currentUser) {
+    return (
+      <div className="text-center py-20 text-xl text-red-500">
+        Por favor inicia sesión para ver tu perfil
+      </div>
+    );
+  }
   const userCourses = courses.filter((c) =>
-    userData.enrolledCourses.includes(c.id)
+    currentUser.enrolledCourses?.includes(c.id)
   );
 
   // Paleta de colores coherente con el navbar rojo (#d62828)
   const colorPalette = {
-    primary: '#d62828',
-    secondary: '#f77f00',
-    accent: '#fcbf49',
-    neutral: '#003049',
-    light: '#eae2b7'
+    primary: "#d62828",
+    secondary: "#f77f00",
+    accent: "#fcbf49",
+    neutral: "#003049",
+    light: "#eae2b7",
   };
 
   return (
@@ -49,11 +58,13 @@ const ProfilePage = () => {
       animate="visible"
       className="max-w-7xl mx-auto p-8"
     >
-      {/* Header del Perfil - Actualizado a rojo */}
+      {/* Header del Perfil */}
       <motion.div
         variants={itemVariants}
         className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-8 mb-8 text-white shadow-xl"
-        style={{ background: `linear-gradient(135deg, ${colorPalette.primary} 0%, ${colorPalette.secondary} 100%)` }}
+        style={{
+          background: `linear-gradient(135deg, ${colorPalette.primary} 0%, ${colorPalette.secondary} 100%)`,
+        }}
       >
         <div className="flex flex-col md:flex-row items-center gap-6">
           <motion.div
@@ -62,7 +73,7 @@ const ProfilePage = () => {
             className="relative group cursor-pointer"
           >
             <motion.img
-              src={userData.avatar}
+              src={currentUser.avatar}
               alt="Avatar"
               className="w-32 h-32 rounded-full border-4 border-white/20 object-cover"
               initial={{ scale: 0 }}
@@ -83,29 +94,31 @@ const ProfilePage = () => {
             animate={{ x: 0 }}
           >
             <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-              {userData.name}
+              {currentUser.name}
               <motion.span
                 className="text-sm bg-white/20 px-3 py-1 rounded-full font-medium"
                 whileHover={{ scale: 1.05 }}
                 style={{ color: colorPalette.light }}
               >
-                {userData.role}
+                {currentUser.role === "admin" ? "Administrador" : "Estudiante"}
               </motion.span>
             </h1>
             <div className="flex flex-wrap gap-4 text-white/90">
               <p className="flex items-center gap-2">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                {userData.email}
+                {currentUser.email}
               </p>
-              <p className="text-sm bg-white/10 px-3 py-1 rounded-full">
-                {userData.registrationDate}
-              </p>
+              {currentUser.registrationDate && (
+                <p className="text-sm bg-white/10 px-3 py-1 rounded-full">
+                  {currentUser.registrationDate}
+                </p>
+              )}
             </div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Estadísticas Rápidas - Paleta actualizada */}
+      {/* Estadísticas Rápidas */}
       <motion.div
         variants={itemVariants}
         className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
@@ -113,28 +126,28 @@ const ProfilePage = () => {
         <StatCard
           icon={faUser}
           title="Progreso General"
-          value={`${userData.stats.progress}%`}
+          value={`${currentUser.stats?.progress || 0}%`}
           color={colorPalette.primary}
           gradient={`linear-gradient(135deg, ${colorPalette.primary} 0%, ${colorPalette.secondary} 100%)`}
         />
         <StatCard
           icon={faGraduationCap}
           title="Cursos Completados"
-          value={userData.stats.completedCourses}
+          value={currentUser.stats?.completedCourses || 0}
           color={colorPalette.neutral}
           gradient={`linear-gradient(135deg, ${colorPalette.neutral} 0%, #002233 100%)`}
         />
         <StatCard
           icon={faClock}
           title="Horas de Estudio"
-          value={userData.stats.learningHours}
+          value={currentUser.stats?.learningHours || 0}
           color={colorPalette.secondary}
           gradient={`linear-gradient(135deg, ${colorPalette.secondary} 0%, #ff9a00 100%)`}
         />
         <StatCard
           icon={faTrophy}
           title="Logros Obtenidos"
-          value={userData.stats.achievements}
+          value={currentUser.achievements?.length || 0}
           color={colorPalette.accent}
           gradient={`linear-gradient(135deg, ${colorPalette.accent} 0%, #fbbf24 100%)`}
         />
@@ -142,14 +155,16 @@ const ProfilePage = () => {
 
       {/* Contenido Principal */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Cursos Activos - Estilo actualizado */}
+        {/* Cursos Activos */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl shadow-xl p-6 border-t-4"
+          className="bg-white h-80 scrollbar-custom overflow-auto rounded-2xl shadow-xl p-6 border-t-4"
           style={{ borderColor: colorPalette.primary }}
         >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3"
-            style={{ color: colorPalette.primary }}>
+          <h2
+            className="text-2xl font-bold mb-6 flex items-center gap-3"
+            style={{ color: colorPalette.primary }}
+          >
             <FontAwesomeIcon
               icon={faBookOpen}
               className="text-3xl transition-transform hover:scale-110"
@@ -171,25 +186,27 @@ const ProfilePage = () => {
           </div>
         </motion.div>
 
-        {/* Logros - Estilo actualizado */}
+        {/* Logros */}
         <motion.div
           variants={itemVariants}
           className="bg-white rounded-2xl shadow-xl p-6 border-t-4"
           style={{ borderColor: colorPalette.accent }}
         >
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3"
-            style={{ color: colorPalette.accent }}>
+          <h2
+            className="text-2xl font-bold mb-6 flex items-center gap-3"
+            style={{ color: colorPalette.accent }}
+          >
             <FontAwesomeIcon
               icon={faTrophy}
               className="text-3xl transition-transform hover:scale-110"
             />
             Últimos Logros
             <span className="text-sm bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
-              {userData.achievements.length} obtenidos
+              {currentUser.achievements?.length || 0} obtenidos
             </span>
           </h2>
           <div className="grid grid-cols-2 gap-4">
-            {userData.achievements.map((achievement, index) => (
+            {currentUser.achievements?.map((achievement, index) => (
               <AchievementCard
                 key={achievement.id}
                 achievement={achievement}

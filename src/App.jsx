@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Navbar from "./components/layout/Navbar";
@@ -14,13 +15,6 @@ const App = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-  };
-
   const DashboardLayout = ({ children }) => (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -30,81 +24,98 @@ const App = () => {
     </div>
   );
 
+  // Componente para rutas protegidas
+  const ProtectedRoute = () => {
+    const { currentUser } = useAuth();
+    return currentUser ? <Outlet /> : <Navigate to="/" />;
+  };
+
+  // Componente para rutas de administrador
+  const AdminRoute = () => {
+    const { currentUser, isAdmin } = useAuth();
+    return currentUser && isAdmin ? <Outlet /> : <Navigate to="/dashboard" />;
+  };
+
   return (
-    <AnimatePresence mode="wait">
-      <div
-        className="min-h-screen"
-        style={{
-          background: "linear-gradient(135deg, #f7fafc, #edf2f7)",
-        }}
-      >
-        {isLoading ? (
-          <Loader key="loader" />
-        ) : (
-          <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<Login onLogin={handleLogin} />} />
-            <Route
-              path="/dashboard"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: 1,
-                    transition: { duration: 1.5 },
-                  }}
-                >
-                  <DashboardLayout>
-                    <Dashboard />
-                  </DashboardLayout>
-                </motion.div>
-              }
-            />
-            <Route
-              path="/courses"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: 1,
-                    transition: { duration: 1.5 },
-                  }}
-                >
-                  <DashboardLayout>
-                    <Courses />
-                  </DashboardLayout>
-                </motion.div>
-              }
-            />
-            <Route
-              path="/courses/:id"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { duration: 1.5 } }}
-                >
-                  <DashboardLayout>
-                    <CoursePage />
-                  </DashboardLayout>
-                </motion.div>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1, transition: { duration: 1.5 } }}
-                >
-                  <DashboardLayout>
-                    <ProfilePage />
-                  </DashboardLayout>
-                </motion.div>
-              }
-            />
-          </Routes>
-        )}
-      </div>
-    </AnimatePresence>
+    <AuthProvider>
+      <AnimatePresence mode="wait">
+        <div
+          className="min-h-screen"
+          style={{
+            background: "linear-gradient(135deg, #f7fafc, #edf2f7)",
+          }}
+        >
+          {isLoading ? (
+            <Loader key="loader" />
+          ) : (
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<Login setIsLoading={setIsLoading} />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{
+                        opacity: 1,
+                        transition: { duration: 1.5 },
+                      }}
+                    >
+                      <DashboardLayout>
+                        <Dashboard />
+                      </DashboardLayout>
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/courses"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{
+                        opacity: 1,
+                        transition: { duration: 1.5 },
+                      }}
+                    >
+                      <DashboardLayout>
+                        <Courses />
+                      </DashboardLayout>
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/courses/:id"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { duration: 1.5 } }}
+                    >
+                      <DashboardLayout>
+                        <CoursePage />
+                      </DashboardLayout>
+                    </motion.div>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1, transition: { duration: 1.5 } }}
+                    >
+                      <DashboardLayout>
+                        <ProfilePage />
+                      </DashboardLayout>
+                    </motion.div>
+                  }
+                />
+              </Route>
+            </Routes>
+          )}
+        </div>
+      </AnimatePresence>
+    </AuthProvider>
   );
 };
 

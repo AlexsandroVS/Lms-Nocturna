@@ -13,50 +13,52 @@ import { useAuth } from "../context/AuthContext";
 import fondoLogin from "../assets/fondo-login.jpg";
 import logoRojo from "../assets/logo.png";
 
-function Login() {
+function Login({ setIsLoading }) {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValid, setIsValid] = useState(false);
 
-  // Función para validar credenciales
-  const validateCredentials = (email, password) => {
-    return (
-      (email === "admin@example.com" && password === "admin123") ||
-      (email === "user@example.com" && password === "user123")
-    );
-  };
-
-  // Efecto que se ejecuta automáticamente al escribir en los inputs
   useEffect(() => {
     if (email && password) {
-      const valid = validateCredentials(email, password);
+      const valid = email.includes("@") && password.length >= 6;
       setIsValid(valid);
       setStatus({
         type: valid ? "success" : "error",
-        message: valid
-          ? "Credenciales verificadas"
-          : "Credenciales incorrectas",
+        message: valid ? "Formato válido" : "Correo o contraseña inválidos",
       });
-
-      // Si las credenciales son correctas, redirigir automáticamente
-      if (valid) {
-        setIsSubmitting(true);
-        setTimeout(() => {
-          localStorage.setItem("authToken", "fake-token");
-          const role = email === "admin@example.com" ? "admin" : "user";
-          navigate(role === "admin" ? "/admin/dashboard" : "/dashboard");
-        }, 1000);
-      }
     } else {
       setStatus({ type: null, message: "" });
       setIsValid(false);
     }
-  }, [email, password, navigate]);
+  }, [email, password]);
 
-  // Función para obtener el estilo de los inputs
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setIsSubmitting(true);
+
+    const success = await login(email, password);
+    if (success) {
+      setStatus({
+        type: "success",
+        message: "Inicio de sesión exitoso",
+      });
+      navigate("/dashboard");
+    } else {
+      setStatus({
+        type: "error",
+        message: "Credenciales incorrectas",
+      });
+    }
+
+    setIsLoading(false);
+    setIsSubmitting(false);
+  };
+
   const getInputStyle = () => {
     if (!email || !password) return "";
     return isValid
@@ -81,7 +83,7 @@ function Login() {
           <img src={logoRojo} alt="Logo" className="h-24 rounded-xl" />
         </div>
 
-        <form className="space-y-8">
+        <form className="space-y-8" onSubmit={handleLogin}>
           <AnimatePresence>
             {status.message && (
               <motion.div
@@ -166,6 +168,14 @@ function Login() {
               />
             </div>
           </motion.div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting || !isValid}
+            className="w-full bg-[#d62828] text-white py-3 rounded-lg hover:bg-[#b32020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
+          </button>
         </form>
       </motion.div>
     </div>

@@ -1,51 +1,67 @@
-/* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { users } from "../data/userData";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
+export function AuthProvider({ children }) {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Verificar autenticación al cargar
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedToken = localStorage.getItem("authToken");
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = localStorage.getItem("currentUser");
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, []);
 
-  const login = (userData) => {
-    const userWithRole = {
-      ...userData,
-      role: userData.email === "admin@example.com" ? "admin" : "user",
-    };
+  const login = (email, password) => {
+    const user = users.find(
+      (u) => u.email === email && u.password === password && u.isActive
+    );
 
-    localStorage.setItem("user", JSON.stringify(userWithRole));
-    localStorage.setItem("authToken", "fake-token"); // Almacenar el token
-    setUser(userWithRole);
+    if (user) {
+      // Guardar TODOS los datos del usuario
+      const userData = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        permissions: user.permissions,
+        stats: user.stats,
+        achievements: user.achievements, // Incluir logros
+        enrolledCourses: user.enrolledCourses, // Incluir cursos inscritos
+        registrationDate: user.registrationDate, // Incluir fecha de registro
+      };
 
-    // Redirigir según el rol
-    const redirectPath =
-      userWithRole.role === "admin" ? "/admin/dashboard" : "/dashboard";
-    navigate(redirectPath);
+      localStorage.setItem("currentUser", JSON.stringify(userData));
+      setCurrentUser(userData);
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("authToken"); // Eliminar el token
-    setUser(null);
-    navigate("/login");
+    localStorage.removeItem("currentUser");
+    setCurrentUser(null);
+  };
+
+  const value = {
+    currentUser,
+    loading,
+    login,
+    logout,
+    isAdmin: currentUser?.role === "admin",
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};

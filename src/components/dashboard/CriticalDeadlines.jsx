@@ -71,7 +71,7 @@ export default function CriticalDeadlines() {
     <motion.div
       initial={{ scale: 0.9 }}
       animate={{ scale: 1 }}
-      className="bg-white p-6 rounded-xl shadow-xl h-[300px] flex flex-col"
+      className="bg-white p-6 rounded-xl shadow-xl h-[340px] flex flex-col"
     >
       <h2 className="font-semibold mb-4 text-xl text-[#003049]">
         📅 Plazos Críticos
