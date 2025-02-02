@@ -1,6 +1,7 @@
-/* eslint-disable react/no-unknown-property */
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -20,50 +21,72 @@ function Login({ setIsLoading }) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isValid, setIsValid] = useState(false);
+  const timerRef = useRef();
+
+  const performLoginCheck = async () => {
+    setIsSubmitting(true);
+    setIsLoading(true);
+
+    try {
+      const success = await login(email, password);
+      if (success) {
+        setStatus({ type: "success", message: "Credenciales correctas" });
+
+        // Esperar 1 segundo antes de redirigir
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1000); // 1000 ms = 1 segundo
+      } else {
+        setStatus({ type: "error", message: "Credenciales incorrectas" });
+      }
+    } catch (error) {
+      setStatus({ type: "error", message: "Error de conexión" });
+    } finally {
+      setIsSubmitting(false);
+      setIsLoading(false);
+    }
+  };
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
-    if (email && password) {
-      const valid = email.includes("@") && password.length >= 6;
-      setIsValid(valid);
-      setStatus({
-        type: valid ? "success" : "error",
-        message: valid ? "Formato válido" : "Correo o contraseña inválidos",
-      });
-    } else {
+    if (!email || !password) {
       setStatus({ type: null, message: "" });
-      setIsValid(false);
+      return;
     }
+
+    timerRef.current = setTimeout(() => {
+      performLoginCheck();
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setIsSubmitting(true);
+    if (isSubmitting || !email || !password) return;
 
-    const success = await login(email, password);
-    if (success) {
-      setStatus({
-        type: "success",
-        message: "Inicio de sesión exitoso",
-      });
-      navigate("/dashboard");
-    } else {
-      setStatus({
-        type: "error",
-        message: "Credenciales incorrectas",
-      });
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
 
-    setIsLoading(false);
-    setIsSubmitting(false);
+    await performLoginCheck();
   };
 
   const getInputStyle = () => {
     if (!email || !password) return "";
-    return isValid
+    return status.type === "error"
+      ? "ring-2 ring-red-500 ring-opacity-50"
+      : status.type === "success"
       ? "ring-2 ring-green-500 ring-opacity-50"
-      : "ring-2 ring-red-500 ring-opacity-50";
+      : "";
   };
 
   return (
@@ -171,8 +194,8 @@ function Login({ setIsLoading }) {
 
           <button
             type="submit"
-            disabled={isSubmitting || !isValid}
-            className="w-full bg-[#d62828] text-white py-3 rounded-lg hover:bg-[#b32020] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSubmitting}
+            className="w-full opacity-0 text-white py-3 rounded-xl hover:bg-[#b02323] transition-colors"
           >
             {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
           </button>

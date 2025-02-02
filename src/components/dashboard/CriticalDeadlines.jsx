@@ -34,7 +34,7 @@ export default function CriticalDeadlines() {
 
     if (daysDiff <= 1) return "#d62828"; // Rojo
     if (daysDiff <= 3) return "#fcbf49"; // Amarillo
-    return "#2a9d8f"; // Verde
+    return "#00C951"; // Verde
   };
 
   // Función para formatear la fecha

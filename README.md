@@ -13,13 +13,18 @@ Un sistema moderno para la gestión de cursos técnicos y formación industrial,
 ✅ Gestión modular de contenido  
 ✅ Recursos destacados y descargables  
 ✅ Animaciones fluidas y UI responsiva  
-✅ Sección de perfil personalizable  
+ Sección de perfil personalizable  
 ✅ Modal interactivo para actividades de módulos  
 ✅ Sistema de logros y reconocimientos  
 ✅ Redirección inteligente entre cursos y módulos
 ✅ Optimización de re-renderizados para mejor rendimiento
 ✅ Manejo avanzado de URL con useSearchParams
 ✅ Sincronización de estado y URL sin re-renderizados innecesarios
+✅ Nuevo: Panel de administración con gestión de usuarios y cursos
+✅ Nuevo: Renderizado condicional basado en roles (admin/user)
+✅ Nuevo: Estadísticas en tiempo real para administradores
+✅ Nuevo: Tabla interactiva de usuarios con filtros y acciones
+✅ Nuevo: Gestión visual de cursos (publicar/editar/archivar)
 
 ## Tecnologías Utilizadas
 
@@ -70,9 +75,41 @@ src/
 ├── pages/
 │   ├── CoursePage.jsx
 │   ├── Courses.jsx
-│   ├── Dashboard.jsx
+│   ├── Dashboard.jsx           # Renderizado condicional (admin/user)
 │   └── ProfilePage.jsx
+├── admin/
+│   ├── AdminDashboard.jsx
+│   ├── AdminStats.jsx
+│   ├── UserManagementTable.jsx
+│   └── CourseManagement.jsx
 ├── utils/
 │   └── courseUtils.js
 └── App.jsx
 ```
+
+Implementación del Admin Dashboard
+
+# Renderizado Condicional
+
+El Dashboard principal verifica el rol del usuario mediante el contexto de autenticación:
+
+const { isAdmin } = useAuth();
+return (
+
+  <div className="flex-1 p-8">
+    <Header />
+    {isAdmin ? <AdminDashboard /> : <UserDashboard />}
+  </div>
+);
+
+# Componentes del Admin Dashboard
+
+AdminStats: Muestra métricas clave en tiempo real.
+
+UserManagementTable: Tabla interactiva para gestionar usuarios (roles, estado, acciones).
+
+CourseManagement: Panel para publicar, editar y archivar cursos.
+
+# Datos Simulados
+
+Los datos de usuarios y cursos se simulan en userData.js y courses.js, respectivamente.

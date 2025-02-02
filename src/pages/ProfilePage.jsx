@@ -56,7 +56,7 @@ const ProfilePage = () => {
       variants={profileVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-7xl mx-auto p-8"
+      className="max-w-7xl mx-auto p-1"
     >
       {/* Header del Perfil */}
       <motion.div

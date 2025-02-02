@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import { useState } from "react";
 import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
+
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -15,10 +15,11 @@ const App = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
+  // eslint-disable-next-line react/prop-types
   const DashboardLayout = ({ children }) => (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 p-6 bg-white shadow-lg rounded-lg mx-4 my-6">
+      <main className="flex-1 p-6 mt-24  bg-white shadow-lg rounded-lg mx-4 my-6">
         {children}
       </main>
     </div>
@@ -51,6 +52,7 @@ const App = () => {
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<Login setIsLoading={setIsLoading} />} />
 
+              {/* Rutas protegidas */}
               <Route element={<ProtectedRoute />}>
                 <Route
                   path="/dashboard"
@@ -110,6 +112,8 @@ const App = () => {
                     </motion.div>
                   }
                 />
+
+                {/* Rutas de administrador */}
               </Route>
             </Routes>
           )}

@@ -1,9 +1,10 @@
-import ProgressBar from '../ui/ProgressBar'
+/* eslint-disable react/prop-types */
+import ProgressBar from "../ui/ProgressBar";
 
 function CourseProgress({ courses }) {
   const averageProgress = Math.round(
     courses.reduce((acc, curr) => acc + curr.progress, 0) / courses.length
-  )
+  );
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
@@ -19,9 +20,11 @@ function CourseProgress({ courses }) {
           </div>
         ))}
       </div>
-      <p className="mt-4 text-sm text-gray-500">Promedio general: {averageProgress}%</p>
+      <p className="mt-4 text-sm text-gray-500">
+        Promedio general: {averageProgress}%
+      </p>
     </div>
-  )
+  );
 }
 
-export default CourseProgress
+export default CourseProgress;

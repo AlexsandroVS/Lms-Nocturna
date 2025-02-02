@@ -1,22 +1,15 @@
 /* eslint-disable react/prop-types */
+import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import { Navigate, Outlet } from "react-router-dom";
 
-const PrivateRoute = ({ allowedRoles }) => {
-  const { user } = useAuth();
-
-  // Verificar si hay un token en localStorage
-  const authToken = localStorage.getItem("authToken");
-
-  if (!authToken || !user) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-
-  return <Outlet />;
+// Ruta base para usuarios autenticados
+export const PrivateRoute = ({ children }) => {
+  const { currentUser } = useAuth();
+  return currentUser ? children : <Navigate to="/" />;
 };
 
-export default PrivateRoute;
+// Ruta solo para administradores
+export const AdminRoute = ({ children }) => {
+  const { currentUser, isAdmin } = useAuth();
+  return currentUser && isAdmin ? children : <Navigate to="/dashboard" />;
+};

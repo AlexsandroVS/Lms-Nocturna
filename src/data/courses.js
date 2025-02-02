@@ -1,7 +1,14 @@
+import {
+  faBolt,
+  faMicrochip,
+  faRobot,
+  faToolbox,
+} from "@fortawesome/free-solid-svg-icons";
+
 const courses = [
   {
     id: 1,
-    icon: "bolt",
+    icon: faBolt,
     color: "#48CAE4",
     title: "Energías Renovables",
     description:
@@ -84,7 +91,7 @@ const courses = [
   },
   {
     id: 2,
-    icon: "robot",
+    icon: faRobot,
     color: "#8AC926",
     title: "Robótica Básica",
     description:
@@ -102,14 +109,14 @@ const courses = [
             duration: "18:20 min",
             url: "#",
             completed: true,
-            deadline: "2025-02-02T09:00",
+            deadline: "2025-02-05T09:00",
           },
           {
             type: "practice",
             title: "Montaje de circuito básico",
             duration: "45 min",
             completed: true,
-            deadline: "2025-02-03T16:00",
+            deadline: "2025-02-10T16:00",
           },
         ],
       },
@@ -151,7 +158,7 @@ const courses = [
   },
   {
     id: 3,
-    icon: "microchip",
+    icon: faMicrochip,
     color: "#FFBA08",
     title: "Programación en PLC",
     description:
@@ -169,14 +176,14 @@ const courses = [
             duration: "14:50 min",
             url: "#",
             completed: false,
-            deadline: "2025-02-01T08:00",
+            deadline: "2025-02-8T08:00",
           },
           {
             type: "practice",
             title: "Ejercicio de contactos básicos",
             duration: "30 min",
             completed: false,
-            deadline: "2025-02-02T12:00",
+            deadline: "2025-02-07T12:00",
           },
         ],
       },
@@ -190,7 +197,7 @@ const courses = [
             duration: "16:30 min",
             url: "#",
             completed: false,
-            deadline: "2025-02-09T10:00",
+            deadline: "2025-02-05T10:00",
           },
           {
             type: "pdf",
@@ -218,7 +225,7 @@ const courses = [
   },
   {
     id: 4,
-    icon: "tools",
+    icon: faToolbox,
     color: "#D00000",
     title: "Mantenimiento Industrial",
     description:
@@ -236,14 +243,14 @@ const courses = [
             duration: "20:15 min",
             url: "#",
             completed: true,
-            deadline: "2025-02-01T09:00",
+            deadline: "2025-02-12T09:00",
           },
           {
             type: "practice",
             title: "Lectura e interpretación de espectros",
             duration: "45 min",
             completed: true,
-            deadline: "2025-02-02T17:00",
+            deadline: "2025-02-20T17:00",
           },
         ],
       },
@@ -265,7 +272,7 @@ const courses = [
             questions: 12,
             passingScore: 85,
             completed: true,
-            deadline: "2025-02-04T23:59",
+            deadline: "2025-02-01T23:59",
           },
         ],
       },

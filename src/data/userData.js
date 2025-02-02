@@ -5,8 +5,8 @@ export const users = [
   {
     id: 1,
     name: "Administrador del Sistema",
-    email: "admin@lmsindustrial.com",
-    password: "Admin1234!",
+    email: "admin@gmail.com",
+    password: "heropass",
     avatar: AdminAvatar,
     role: "admin",
     permissions: {
@@ -99,6 +99,44 @@ export const users = [
     ],
     registrationDate: "2023-02-15",
     lastLogin: "2024-02-15T08:35:00Z",
+    isActive: true,
+  },
+  {
+    id: 4,
+    name: "María García",
+    email: "maria@example.com",
+    password: "password123",
+    avatar: Avatar,
+    role: "user",
+    permissions: {
+      /* ... */
+    },
+    stats: {
+      progress: 45,
+      completedCourses: 3,
+      learningHours: 30,
+      achievements: 2,
+    },
+    enrolledCourses: [1, 3],
+    registrationDate: "2024-01-10",
+    isActive: true,
+  },
+  {
+    id: 5,
+    name: "Carlos Martínez",
+    email: "carlos@example.com",
+    password: "password123",
+    avatar: Avatar,
+    role: "user",
+    permissions: { manageCourses: true /* ... */ },
+    stats: {
+      progress: 85,
+      completedCourses: 8,
+      learningHours: 75,
+      achievements: 6,
+    },
+    enrolledCourses: [2, 4],
+    registrationDate: "2023-11-15",
     isActive: true,
   },
 ];

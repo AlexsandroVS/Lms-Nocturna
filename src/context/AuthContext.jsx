@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     logout,
-    isAdmin: currentUser?.role === "admin",
+    isAdmin: currentUser?.role === "admin", // Verificación explícita
   };
 
   return (

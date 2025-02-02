@@ -1,44 +1,54 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { motion } from "framer-motion";
-import {
-  faArrowRight,
-  faBolt,
-  faRobot,
-  faMicrochip,
-  faTools,
-} from "@fortawesome/free-solid-svg-icons";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
+import courses from "../../data/courses";
 
 export default function ContinueCourse() {
-  // Mapeo de cursos con sus iconos
-  const courses = [
-    {
-      name: "Energías Renovables",
-      lesson: "Lección 5",
-      icon: faBolt,
-      color: "#48CAE4",
-    },
-    {
-      name: "Robótica Básica",
-      lesson: "Lección 3",
-      icon: faRobot,
-      color: "#8AC926",
-    },
-    {
-      name: "Programación de PLC",
-      lesson: "Lección 8",
-      icon: faMicrochip,
-      color: "#FFBA08",
-    },
-    {
-      name: "Mantenimiento Industrial",
-      lesson: "Lección 2",
-      icon: faTools,
-      color: "#d00000",
-    },
-  ];
+  // Función para encontrar la actividad más próxima a vencer
+  const findNextActivity = () => {
+    let nextActivity = null;
+    let closestDeadline = Infinity;
 
-  // Curso actual (puedes cambiar el índice para mostrar diferentes cursos)
-  const currentCourse = courses[0];
+    // Recorre todos los cursos y actividades
+    courses.forEach((course) => {
+      course.modules.forEach((module) => {
+        module.activities.forEach((activity) => {
+          if (!activity.completed) {
+            const deadline = new Date(activity.deadline).getTime();
+            if (deadline < closestDeadline) {
+              closestDeadline = deadline;
+              nextActivity = { ...activity, course };
+            }
+          }
+        });
+      });
+    });
+
+    return nextActivity;
+  };
+
+  const nextActivity = findNextActivity();
+
+  if (!nextActivity) {
+    return (
+      <motion.div
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        className="bg-white p-6 rounded-xl shadow-xl"
+      >
+        <h2 className="font-semibold text-xl text-[#003049] mb-4">
+          No hay actividades pendientes
+        </h2>
+        <p className="text-gray-600">
+          ¡Felicidades! Has completado todas las actividades.
+        </p>
+      </motion.div>
+    );
+  }
+
+  const { course, title, deadline } = nextActivity;
+  const deadlineDate = new Date(deadline).toLocaleDateString();
+  const deadlineTime = new Date(deadline).toLocaleTimeString();
 
   return (
     <motion.div
@@ -50,19 +60,19 @@ export default function ContinueCourse() {
         <h2 className="font-semibold text-xl text-[#003049]">
           Continúa donde lo dejaste
         </h2>
-        <span className="text-md font-semibold" style={{ color: currentCourse.color }}>
-          {currentCourse.name} - {currentCourse.lesson}
+        <span className="text-md font-semibold" style={{ color: course.color }}>
+          {course.title} - {title}
         </span>
       </div>
       <div className="flex flex-col md:flex-row items-center gap-4">
         <div
           className="w-24 h-24 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${currentCourse.color}20` }}
+          style={{ backgroundColor: `${course.color}20` }}
         >
           <FontAwesomeIcon
-            icon={currentCourse.icon}
+            icon={course.icon}
             className="text-4xl"
-            style={{ color: currentCourse.color }}
+            style={{ color: course.color }}
           />
         </div>
         <div className="flex-1 w-full">
@@ -70,18 +80,25 @@ export default function ContinueCourse() {
             <div
               className="h-2 rounded-full transition-all duration-500"
               style={{
-                width: "75%",
-                backgroundColor: currentCourse.color,
+                width: `${course.progress}%`,
+                backgroundColor: course.color,
               }}
             />
           </div>
-          <button
-            className="mt-4 text-lg font-bold text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: currentCourse.color }}
-          >
-            Continuar Lección{" "}
-            <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
-          </button>
+          <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+              <p className="text-gray-600">
+                Fecha límite: {deadlineDate} a las {deadlineTime}
+              </p>
+            </div>
+            <button
+              className="text-lg font-bold text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: course.color }}
+            >
+              Continuar Lección{" "}
+              <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
