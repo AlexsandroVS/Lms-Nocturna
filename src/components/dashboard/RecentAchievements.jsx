@@ -1,13 +1,14 @@
+/* eslint-disable react/prop-types */
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBrain, faComments, faFire } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faBrain, faComments, faFire } from "@fortawesome/free-solid-svg-icons";
 
 function RecentAchievements({ achievements }) {
   const icons = {
     brain: faBrain,
     comments: faComments,
-    fire: faFire
-  }
+    fire: faFire,
+  };
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm">
@@ -30,7 +31,7 @@ function RecentAchievements({ achievements }) {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
-export default RecentAchievements
+export default RecentAchievements;

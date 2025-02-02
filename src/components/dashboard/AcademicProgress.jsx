@@ -1,8 +1,6 @@
 /* eslint-disable react/prop-types */
-// eslint-disable-next-line react/prop-types
-import {motion} from "framer-motion"
+import { motion } from "framer-motion";
 export default function AcademicProgress({ courses }) {
-  // eslint-disable-next-line react/prop-types
   const average = Math.round(
     courses.reduce((acc, curr) => acc + curr.progress, 0) / courses.length
   );
@@ -11,9 +9,11 @@ export default function AcademicProgress({ courses }) {
     <motion.div
       initial={{ scale: 0.9 }}
       animate={{ scale: 1 }}
-      className="bg-white p-6 rounded-xl shadow-xl overflow-auto h-64 scrollbar-custom"
+      className="bg-white p-6 rounded-xl shadow-xl overflow-auto h-64 "
     >
-      <h2 className="font-semibold mb-4 text-[#003049] text-xl">Tu Avance Académico</h2>
+      <h2 className="font-semibold mb-4 text-[#003049] text-xl">
+        Tu Avance Académico
+      </h2>
       <div className="space-y-4">
         {courses.map((course, index) => (
           <div key={index} className="space-y-2">

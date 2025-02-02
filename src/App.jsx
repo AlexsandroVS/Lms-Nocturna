@@ -19,7 +19,7 @@ const App = () => {
   const DashboardLayout = ({ children }) => (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1 p-6 mt-24  bg-white shadow-lg rounded-lg mx-4 my-6">
+      <main className="flex-1 p-6 mt-24 bg-white shadow-lg rounded-lg mx-4 my-6">
         {children}
       </main>
     </div>

@@ -76,7 +76,7 @@ export default function CriticalDeadlines() {
       <h2 className="font-semibold mb-4 text-xl text-[#003049]">
         📅 Plazos Críticos
       </h2>
-      <div className="flex-1 overflow-auto scrollbar-custom">
+      <div className="flex-1 overflow-auto">
         <div className="space-y-4 pr-2">
           {upcomingActivities.map((activity, index) => (
             <div

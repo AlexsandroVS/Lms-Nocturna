@@ -118,7 +118,7 @@ export default function Navbar() {
                 >
                   <Link
                     to={item.link}
-                    className="text-white hover:bg-[#b32020] block px-3 py-2 rounded-md text-base font-medium flex items-center transition duration-300"
+                    className="text-white hover:bg-[#b32020] px-3 py-2 rounded-md text-base font-medium flex items-center transition duration-300"
                   >
                     <FontAwesomeIcon icon={item.icon} className="mr-2" />
                     {item.text}

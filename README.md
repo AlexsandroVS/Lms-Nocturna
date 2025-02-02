@@ -1,21 +1,19 @@
 # Learning Management System (LMS) Industrial
 
-![Demo](https://via.placeholder.com/800x400.png?text=LMS+Industrial+Demo) <!-- Agrega capturas reales aquí -->
-
 Un sistema moderno para la gestión de cursos técnicos y formación industrial, con enfoque en energías renovables, robótica y automatización.
 
 ## Características Principales
 
-✅ Autenticación de usuarios (normales y administradores)  
-✅ Dashboard interactivo con métricas clave  
-✅ Catálogo de cursos con diseño dinámico  
-✅ Sistema de progreso y seguimiento detallado  
-✅ Gestión modular de contenido  
-✅ Recursos destacados y descargables  
-✅ Animaciones fluidas y UI responsiva  
- Sección de perfil personalizable  
-✅ Modal interactivo para actividades de módulos  
-✅ Sistema de logros y reconocimientos  
+✅ Autenticación de usuarios (normales y administradores)
+✅ Dashboard interactivo con métricas clave
+✅ Catálogo de cursos con diseño dinámico
+✅ Sistema de progreso y seguimiento detallado
+✅ Gestión modular de contenido
+✅ Recursos destacados y descargables
+✅ Animaciones fluidas y UI responsiva
+✅ Sección de perfil personalizable
+✅ Modal interactivo para actividades de módulos
+✅ Sistema de logros y reconocimientos
 ✅ Redirección inteligente entre cursos y módulos
 ✅ Optimización de re-renderizados para mejor rendimiento
 ✅ Manejo avanzado de URL con useSearchParams
@@ -28,64 +26,76 @@ Un sistema moderno para la gestión de cursos técnicos y formación industrial,
 
 ## Tecnologías Utilizadas
 
-- **Frontend**:  
-  ![React](https://img.shields.io/badge/React-18.2.0-61DAFB?logo=react)
-  ![React Router](https://img.shields.io/badge/React_Router-6.14.2-CA4245?logo=react-router)
-  ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3.3-06B6D4?logo=tailwind-css)
-  ![Framer Motion](https://img.shields.io/badge/Framer_Motion-10.12.16-0055FF?logo=framer)
+Frontend:
+React
+React Router
+Tailwind CSS
+Framer Motion
 
-- **Iconos**:  
-  ![Font Awesome](https://img.shields.io/badge/Font_Awesome-6.4.0-528DD7?logo=font-awesome)
+Iconos:
+Font Awesome
 
-- **Herramientas**:  
-  ![Vite](https://img.shields.io/badge/Vite-4.3.9-646CFF?logo=vite)
+Herramientas:
+Vite
 
 ## Estructura del Proyecto Actualizada
 
-```plaintext
 src/
 ├── components/
-│   ├── courses/
-│   │   ├── CourseCard.jsx
-│   │   ├── LessonList.jsx
-│   ├── dashboard/
-│   │   ├── AcademicProgress.jsx
-│   │   ├── ContinueCourse.jsx
-│   │   ├── CourseProgress.jsx
-│   │   ├── CriticalDeadlines.jsx
-│   │   ├── FeaturedResource.jsx
-│   │   └── RecentAchievements.jsx
-│   ├── layout/
-│   │   ├── Header.jsx
-│   │   ├── Navbar.jsx
-│   │   └── Sidebar.jsx
-│   ├── module/
-│   │   └── ModuleModal.jsx
-│   ├── profile/
-│   │   ├── AchievementCard.jsx
-│   │   ├── CourseProgressCard.jsx
-│   │   └── StatCard.jsx
-│   └── ui/
-│       ├── Loader.jsx
-│       └── ProgressBar.jsx
+│ ├── courses/
+│ │ ├── CourseCard.jsx
+│ │ ├── LessonList.jsx
+│ ├── dashboard/
+│ │ ├── AcademicProgress.jsx
+│ │ ├── ContinueCourse.jsx
+│ │ ├── CourseProgress.jsx
+│ │ ├── CriticalDeadlines.jsx
+│ │ ├── FeaturedResource.jsx
+│ │ └── RecentAchievements.jsx
+│ ├── layout/
+│ │ ├── Header.jsx
+│ │ ├── Navbar.jsx
+│ │ └── Sidebar.jsx
+│ ├── module/
+│ │ └── ModuleModal.jsx
+│ ├── profile/
+│ │ ├── AchievementCard.jsx
+│ │ ├── CourseProgressCard.jsx
+│ │ └── StatCard.jsx
+│ └── ui/
+│ ├── Loader.jsx
+│ └── ProgressBar.jsx
 ├── data/
-│   ├── courses.js
-│   ├── dashboardData.js
-│   └── userData.js
+│ ├── courses.js
+│ ├── dashboardData.js
+│ └── userData.js
 ├── pages/
-│   ├── CoursePage.jsx
-│   ├── Courses.jsx
-│   ├── Dashboard.jsx           # Renderizado condicional (admin/user)
-│   └── ProfilePage.jsx
+│ ├── CoursePage.jsx
+│ ├── Courses.jsx
+│ ├── Dashboard.jsx # Renderizado condicional (admin/user)
+│ └── ProfilePage.jsx
 ├── admin/
-│   ├── AdminDashboard.jsx
-│   ├── AdminStats.jsx
-│   ├── UserManagementTable.jsx
-│   └── CourseManagement.jsx
+│ ├── Acourses/
+│ │ ├── AdminCourse.jsx
+│ │ ├── CourseManagement.jsx
+│ │ ├── CourseProgressChart.jsx
+│ │ ├── EnrollmentStats.jsx
+│ │ └── LearningAnalytics.jsx
+│ ├── AdminDashboard.jsx
+│ ├── AdminStats.jsx
+│ ├── UserManagementTable.jsx
+│ ├── CourseManagement.jsx
+│ ├── AdminQuickActions.jsx
+│ ├── UserManagementPreview.jsx
+│ ├── CourseProgressChart.jsx
+│ ├── EnrollmentStats.jsx
+│ ├── CourseManagementGrid.jsx
+│ └── LearningAnalytics.jsx
 ├── utils/
-│   └── courseUtils.js
+│ ├── courseUtils.js
+│ ├── animationUtils.js
+│ └── chartConfig.js
 └── App.jsx
-```
 
 Implementación del Admin Dashboard
 
@@ -112,4 +122,20 @@ CourseManagement: Panel para publicar, editar y archivar cursos.
 
 # Datos Simulados
 
-Los datos de usuarios y cursos se simulan en userData.js y courses.js, respectivamente.
+## Los datos de usuarios y cursos se simulan en userData.js y courses.js, respectivamente.
+
+# Implementación del Admin Dashboard
+
+# Descripción de AdminCoursesDashboard
+
+El componente AdminCoursesDashboard es el panel principal de administración de cursos en un Learning Management System (LMS). Está diseñado para que los administradores académicos gestionen, monitoreen y analicen todos los aspectos relacionados con los cursos ofrecidos en la plataforma.
+
+# Funcionalidades Clave
+
+# Función | Descripción
+
+Gestión de Cursos | Permite ver, editar y eliminar cursos existentes.
+Análisis Visual | Muestra métricas clave mediante gráficos interactivos (progreso, inscripciones).
+Acciones Rápidas | Botones para crear nuevos cursos o filtrar contenido.
+Monitoreo de Progreso | Gráficos en tiempo real del avance académico de los estudiantes.
+Gestión de Usuarios | Vista rápida de inscripciones y participación en cursos.

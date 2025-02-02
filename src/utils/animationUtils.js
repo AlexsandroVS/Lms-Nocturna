@@ -58,3 +58,28 @@ export const containerVariantsCourse = {
     },
   },
 };
+
+//Courses.jsx
+
+export const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 20,
+      duration: 0.5,
+    },
+  },
+  hover: {
+    y: -5,
+    scale: 1.02,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      duration: 0.3,
+    },
+  },
+};

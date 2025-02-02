@@ -1,11 +1,12 @@
-import { useAuth } from "../context/AuthContext"; // Importa el contexto de autenticación
+import { useAuth } from "../context/AuthContext";
+import { motion } from "framer-motion";
+import courses from "../data/courses";
 import Header from "../components/layout/Header";
 import AcademicProgress from "../components/dashboard/AcademicProgress";
 import ContinueCourse from "../components/dashboard/ContinueCourse";
 import CriticalDeadlines from "../components/dashboard/CriticalDeadlines";
 import FeaturedResource from "../components/dashboard/FeaturedResource";
-import { motion } from "framer-motion";
-import AdminDashboard from "../admin/AdminDashboard"; // Importa el AdminDashboard
+import AdminDashboard from "../admin/AdminDashboard";
 
 export default function Dashboard() {
   const { currentUser, isAdmin } = useAuth(); // Obtén el usuario actual y su rol
@@ -42,16 +43,11 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <WelcomeCard />
             <AcademicProgress
-              courses={[
-                { name: "Energias Renovables", progress: 75, color: "#48CAE4" },
-                { name: "Robótica Básica", progress: 65, color: "#8AC926" },
-                { name: "Programación de PLC", progress: 25, color: "#FFBA08" },
-                {
-                  name: "Mantenimiento Industrial",
-                  progress: 95,
-                  color: "#d00000",
-                },
-              ]}
+              courses={courses.map(({ title, progress, color }) => ({
+                name: title,
+                progress,
+                color,
+              }))}
             />
           </div>
 
