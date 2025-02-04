@@ -3,12 +3,14 @@ import {
   faMicrochip,
   faRobot,
   faToolbox,
+  faDisplay,
 } from "@fortawesome/free-solid-svg-icons";
 
 const courses = [
   {
     id: 1,
     icon: faBolt,
+    state: "active",
     color: "#48CAE4",
     title: "Energías Renovables",
     description:
@@ -93,6 +95,7 @@ const courses = [
     id: 2,
     icon: faRobot,
     color: "#8AC926",
+    state: "inactive",
     title: "Robótica Básica",
     description:
       "Introducción a la construcción y programación de robots industriales colaborativos.",
@@ -158,6 +161,7 @@ const courses = [
   },
   {
     id: 3,
+    state: "archived",
     icon: faMicrochip,
     color: "#FFBA08",
     title: "Programación en PLC",
@@ -227,6 +231,7 @@ const courses = [
     id: 4,
     icon: faToolbox,
     color: "#D00000",
+    state: "active",
     title: "Mantenimiento Industrial",
     description:
       "Estrategias avanzadas de mantenimiento predictivo y preventivo en entornos productivos.",
@@ -286,6 +291,74 @@ const courses = [
       {
         title: "Guía de lubricación",
         icon: "oil-can",
+        link: "#",
+      },
+    ],
+  },
+  {
+    id: 5,
+    state: "active",
+    icon: faDisplay,
+    color: "#0057D9",
+    title: "Automatización Industrial",
+    description:
+      "Principios y aplicaciones de sistemas automatizados en entornos industriales modernos.",
+    duration: "30 horas",
+    progress: 60,
+    modules: [
+      {
+        id: 1,
+        title: "Controladores Lógicos Programables (PLC)",
+        activities: [
+          {
+            type: "video",
+            title: "Introducción a los PLC",
+            duration: "22:30 min",
+            url: "#",
+            completed: true,
+            deadline: "2025-02-15T10:30",
+          },
+          {
+            type: "practice",
+            title: "Programación básica en ladder",
+            duration: "50 min",
+            completed: false,
+            deadline: "2025-02-25T18:00",
+          },
+        ],
+      },
+      {
+        id: 2,
+        title: "Sensores y actuadores",
+        activities: [
+          {
+            type: "video",
+            title: "Tipos y aplicaciones de sensores industriales",
+            duration: "19:20 min",
+            url: "#",
+            completed: true,
+            deadline: "2025-02-07T14:00",
+          },
+          {
+            type: "quiz",
+            title: "Evaluación de sensores y actuadores",
+            questions: 15,
+            passingScore: 80,
+            completed: false,
+            deadline: "2025-02-10T23:59",
+          },
+        ],
+      },
+    ],
+    resources: [
+      {
+        title: "Manual de PLC",
+        icon: "book",
+        link: "#",
+      },
+      {
+        title: "Guía de sensores industriales",
+        icon: "microchip",
         link: "#",
       },
     ],

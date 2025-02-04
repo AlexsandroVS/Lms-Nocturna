@@ -1,13 +1,31 @@
-// components/admin/AdminCoursesDashboard.jsx
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { CourseProgressChart } from "./CourseProgressChart";
 import { EnrollmentStats } from "./EnrollmentStats";
 import { CourseManagementGrid } from "./CourseManagementGrid";
 import { LearningAnalytics } from "./LearningAnalytics";
+import { CreateCourseModal } from "../modals/CreateCourseModal";
 
 const AdminCoursesDashboard = () => {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("all");
+
+  const handleFilterChange = (status) => {
+    setSelectedStatus(status);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
+      {showCreateModal && (
+        <CreateCourseModal
+          onClose={() => setShowCreateModal(false)}
+          onSave={(newCourse) => {
+            // Lógica para guardar el nuevo curso
+            console.log("Nuevo curso:", newCourse);
+            setShowCreateModal(false);
+          }}
+        />
+      )}
       {/* Header */}
       <motion.header
         initial={{ y: -20, opacity: 0 }}
@@ -18,13 +36,55 @@ const AdminCoursesDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Panel de Cursos</h1>
           <p className="text-gray-600 mt-2">Gestión académica integral</p>
         </div>
-        <div className="flex gap-4">
-          <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+        <div className="flex gap-4 flex-wrap">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
             Nuevo Curso
           </button>
-          <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-white transition-colors">
-            Filtrar
-          </button>
+
+          {/* Filtro de estado */}
+          <div className="relative">
+            <select
+              value={selectedStatus}
+              onChange={(e) => handleFilterChange(e.target.value)}
+              className="pl-4 pr-8 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors appearance-none cursor-pointer"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+              <option value="archived">Archivados</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </motion.header>
 
@@ -58,9 +118,7 @@ const AdminCoursesDashboard = () => {
               <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 Publicar nuevo contenido
               </button>
-              <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                Generar certificados
-              </button>
+
               <button className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 Revisar feedback
               </button>

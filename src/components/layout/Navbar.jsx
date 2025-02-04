@@ -1,23 +1,26 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHome,
-  faBookOpen,
-  faUser,
-  faSignOutAlt,
-} from "@fortawesome/free-solid-svg-icons";
+import { faHome, faBookOpen, faUser, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../../context/AuthContext";
 import Logo from "../../assets/logo.png";
 
 export default function Navbar() {
+  const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
+  const { currentUser, logout } = useAuth(); 
+
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+  };
 
   const navigationItems = [
     { icon: faHome, text: "Inicio", link: "/dashboard" },
     { icon: faBookOpen, text: "Cursos", link: "/courses" },
     { icon: faUser, text: "Mi Perfil", link: "/profile" },
-    { icon: faSignOutAlt, text: "Cerrar Sesión", link: "/" },
   ];
 
   // Animaciones para los enlaces del menú
@@ -40,7 +43,12 @@ export default function Navbar() {
           {/* Logo y menú de escritorio */}
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <img className="h-16" src={Logo} alt="Logo LMS" />
+              <img
+                className="h-16 cursor-pointer"
+                src={Logo}
+                onClick={() => navigate("/dashboard")}
+                alt="Logo LMS"
+              />
             </div>
             <div className="hidden md:flex md:space-x-4 md:ml-10">
               {navigationItems.map((item, index) => (
@@ -60,6 +68,22 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
               ))}
+
+              {/* Botón de Cerrar Sesión */}
+              <motion.div
+                variants={linkVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: navigationItems.length * 0.1 }}
+              >
+                <button
+                  onClick={handleLogout}
+                  className="text-white/90 hover:text-white px-3 py-2 rounded-md text-lg font-medium flex items-center transition duration-300"
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                  Cerrar Sesión
+                </button>
+              </motion.div>
             </div>
           </div>
 
@@ -69,26 +93,11 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-[#b32020] focus:outline-none transition duration-300"
             >
-              <svg
-                className="h-6 w-6"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                 {isMobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -125,6 +134,22 @@ export default function Navbar() {
                   </Link>
                 </motion.div>
               ))}
+
+              {/* Botón de Cerrar Sesión en menú móvil */}
+              <motion.div
+                variants={linkVariants}
+                initial="hidden"
+                animate="visible"
+                transition={{ delay: navigationItems.length * 0.1 }}
+              >
+                <button
+                  onClick={handleLogout}
+                  className="text-white hover:bg-[#b32020] px-3 py-2 rounded-md text-base font-medium flex items-center transition duration-300 w-full text-left"
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                  Cerrar Sesión
+                </button>
+              </motion.div>
             </div>
           </motion.div>
         )}

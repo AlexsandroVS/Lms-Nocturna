@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
-
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Navbar from "./components/layout/Navbar";
@@ -10,63 +10,52 @@ import Courses from "./pages/Courses";
 import CoursePage from "./pages/CoursePage";
 import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
+import AdminDashboard from "./admin/AdminDashboard";
+
+const DashboardLayout = ({ children }) => (
+  <div className="min-h-screen flex flex-col">
+    <Navbar />
+    <motion.main
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="flex-1 p-6 mt-24 bg-white shadow-lg rounded-lg mx-4 my-6"
+    >
+      {children}
+    </motion.main>
+  </div>
+);
 
 const App = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
 
-  // eslint-disable-next-line react/prop-types
-  const DashboardLayout = ({ children }) => (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 p-6 mt-24 bg-white shadow-lg rounded-lg mx-4 my-6">
-        {children}
-      </main>
-    </div>
-  );
-
-  // Componente para rutas protegidas
-  const ProtectedRoute = () => {
-    const { currentUser } = useAuth();
-    return currentUser ? <Outlet /> : <Navigate to="/" />;
-  };
-
-  // Componente para rutas de administrador
-  const AdminRoute = () => {
-    const { currentUser, isAdmin } = useAuth();
-    return currentUser && isAdmin ? <Outlet /> : <Navigate to="/dashboard" />;
-  };
-
   return (
     <AuthProvider>
-      <AnimatePresence mode="wait">
-        <div
-          className="min-h-screen"
-          style={{
-            background: "linear-gradient(135deg, #f7fafc, #edf2f7)",
-          }}
-        >
+      <div
+        className="min-h-screen"
+        style={{
+          background: "linear-gradient(135deg, #f7fafc, #edf2f7)",
+        }}
+      >
+        <AnimatePresence mode="wait">
           {isLoading ? (
             <Loader key="loader" />
           ) : (
-            <Routes location={location} key={location.pathname}>
+            <Routes location={location} key={location.key}>
               <Route path="/" element={<Login setIsLoading={setIsLoading} />} />
 
-              {/* Rutas protegidas */}
-              <Route element={<ProtectedRoute />}>
+              {/* Rutas protegidas con DashboardLayout */}
+              <Route element={<ProtectedRoute layout={DashboardLayout} />}>
                 <Route
                   path="/dashboard"
                   element={
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{
-                        opacity: 1,
-                        transition: { duration: 1.5 },
-                      }}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
                     >
-                      <DashboardLayout>
-                        <Dashboard />
-                      </DashboardLayout>
+                      <Dashboard />
                     </motion.div>
                   }
                 />
@@ -74,15 +63,11 @@ const App = () => {
                   path="/courses"
                   element={
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{
-                        opacity: 1,
-                        transition: { duration: 1.5 },
-                      }}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
                     >
-                      <DashboardLayout>
-                        <Courses />
-                      </DashboardLayout>
+                      <Courses />
                     </motion.div>
                   }
                 />
@@ -90,12 +75,11 @@ const App = () => {
                   path="/courses/:id"
                   element={
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1, transition: { duration: 1.5 } }}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
                     >
-                      <DashboardLayout>
-                        <CoursePage />
-                      </DashboardLayout>
+                      <CoursePage />
                     </motion.div>
                   }
                 />
@@ -103,22 +87,40 @@ const App = () => {
                   path="/profile"
                   element={
                     <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1, transition: { duration: 1.5 } }}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
                     >
-                      <DashboardLayout>
-                        <ProfilePage />
-                      </DashboardLayout>
+                      <ProfilePage />
                     </motion.div>
                   }
                 />
-
-                {/* Rutas de administrador */}
               </Route>
+
+              {/* Rutas de administrador */}
+              <Route
+                element={<ProtectedRoute roles={['admin']} layout={DashboardLayout} />}
+              >
+                <Route
+                  path="/admin"
+                  element={
+                    <motion.div
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
+                    >
+                      <AdminDashboard />
+                    </motion.div>
+                  }
+                />
+              </Route>
+
+              {/* Redirección para rutas no encontradas */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           )}
-        </div>
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </AuthProvider>
   );
 };

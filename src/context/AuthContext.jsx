@@ -1,58 +1,107 @@
+/* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
-import { users } from "../data/userData";
+import axios from 'axios';
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
+
+// Configurar axios para usar la URL base y enviar el token automáticamente
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+});
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    initializeAuth();
   }, []);
 
-  const login = (email, password) => {
-    const user = users.find(
-      (u) => u.email === email && u.password === password && u.isActive
-    );
-
-    if (user) {
-      // Guardar TODOS los datos del usuario
-      const userData = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        permissions: user.permissions,
-        stats: user.stats,
-        achievements: user.achievements, // Incluir logros
-        enrolledCourses: user.enrolledCourses, // Incluir cursos inscritos
-        registrationDate: user.registrationDate, // Incluir fecha de registro
-      };
-
-      localStorage.setItem("currentUser", JSON.stringify(userData));
-      setCurrentUser(userData);
-      return true;
+  const initializeAuth = async () => {
+    const token = localStorage.getItem('jwtToken');
+    
+    if (token) {
+      try {
+        // Verificar token con el backend
+        const response = await api.get('/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        setCurrentUser(response.data.user);
+      } catch (error) {
+        handleAuthError(error);
+      }
     }
-    return false;
+    setLoading(false);
+  };
+
+  const login = async (email, password) => {
+    try {
+      const response = await api.post('/auth/login', {
+        email,
+        password
+      });
+
+      const { token, user } = response.data;
+      
+      // Almacenar token y datos básicos del usuario
+      localStorage.setItem('jwtToken', token);
+      localStorage.setItem('userData', JSON.stringify(user));
+      
+      setCurrentUser(user);
+      navigate(user.role === 'admin' ? '/dashboard' : '/');
+      return true;
+    } catch (error) {
+      handleAuthError(error);
+      return false;
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem("currentUser");
-    setCurrentUser(null);
+    // Limpiar almacenamiento
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('userData');
+  
+    // Primero redirigir al usuario
+    navigate("/", { replace: true });
+  
+    // Luego limpiar el estado (esto previene posibles re-renderizados antes de la redirección)
+    setTimeout(() => {
+      setCurrentUser(null);
+    }, 100);
+  
+    // Opcional: Llamar a endpoint de logout en el backend
+    api.post('/auth/logout').catch((error) => console.error("Error en logout:", error));
   };
+  
+
+  const handleAuthError = (error) => {
+    console.error('Error de autenticación:', error);
+    
+    if (error.response?.status === 401) {
+      logout();
+    }
+  };
+
+  // Interceptor para incluir token en cada petición
+  api.interceptors.request.use(config => {
+    const token = localStorage.getItem('jwtToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
 
   const value = {
     currentUser,
     loading,
     login,
     logout,
-    isAdmin: currentUser?.role === "admin", // Verificación explícita
+    isAdmin: currentUser?.role === 'admin',
+    isTeacher: currentUser?.role === 'teacher',
+    api // Exportar instancia de axios configurada
   };
 
   return (

@@ -39,10 +39,10 @@ const UserManagementTable = () => {
     <motion.div
       initial="hidden"
       animate="visible"
-      className="bg-white rounded-xl shadow-lg p-6"
+      className="bg-white flex flex-col h-[600px] rounded-xl shadow-2xl p-6"
     >
       {/* Header con buscador mejorado */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      <div className="flex  flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-800 bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
             Gestión de Usuarios

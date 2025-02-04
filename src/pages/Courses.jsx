@@ -8,7 +8,7 @@ import RecentActivities from "../components/courses/RecentActivities";
 
 const Courses = () => {
   const staggerDelay = 0.15;
-  const { currentUser, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
 
   return (
     <div>

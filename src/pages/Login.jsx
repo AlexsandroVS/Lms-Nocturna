@@ -21,6 +21,7 @@ function Login({ setIsLoading }) {
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: null, message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formValid, setFormValid] = useState(false);
   const timerRef = useRef();
 
   const performLoginCheck = async () => {
@@ -70,16 +71,30 @@ function Login({ setIsLoading }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (isSubmitting || !email || !password) return;
+    if (isSubmitting || !formValid) return;
 
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    setIsSubmitting(true);
+    setIsLoading(true);
+    setStatus({ type: null, message: "" });
+
+    try {
+      const success = await login(email, password);
+      
+      if (success) {
+        setStatus({ type: "success", message: "Inicio de sesión exitoso" });
+        setTimeout(() => navigate("/dashboard"), 1000);
+      }
+    } catch (error) {
+      let errorMessage = "Error de conexión";
+      if (error.response) {
+        errorMessage = error.response.data.error || "Credenciales inválidas";
+      }
+      setStatus({ type: "error", message: errorMessage });
+    } finally {
+      setIsSubmitting(false);
+      setIsLoading(false);
     }
-
-    await performLoginCheck();
   };
-
   const getInputStyle = () => {
     if (!email || !password) return "";
     return status.type === "error"
