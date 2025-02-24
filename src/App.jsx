@@ -10,6 +10,8 @@ import Courses from "./pages/Courses";
 import CoursePage from "./pages/CoursePage";
 import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
+import ActivityPage from "./pages/ActivityPage";
+import FilesPage from "./pages/FilesPage";
 import AdminDashboard from "./admin/AdminDashboard";
 
 const DashboardLayout = ({ children }) => (
@@ -72,6 +74,19 @@ const App = () => {
                   }
                 />
                 <Route
+                  path="/courses/:courseId/modules/:moduleId"
+                  element={
+                    <motion.div
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
+                    >
+                      <ActivityPage />
+                    </motion.div>
+                  }
+                />
+
+                <Route
                   path="/courses/:id"
                   element={
                     <motion.div
@@ -95,11 +110,26 @@ const App = () => {
                     </motion.div>
                   }
                 />
+                 <Route
+                path="/files/:activityId"
+                element={
+                  <motion.div
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -50, opacity: 0 }}
+                  >
+                    <FilesPage />
+                  </motion.div>
+                }
+              />
               </Route>
+             
 
               {/* Rutas de administrador */}
               <Route
-                element={<ProtectedRoute roles={['admin']} layout={DashboardLayout} />}
+                element={
+                  <ProtectedRoute roles={["admin"]} layout={DashboardLayout} />
+                }
               >
                 <Route
                   path="/admin"

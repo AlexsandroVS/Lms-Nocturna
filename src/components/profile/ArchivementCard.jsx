@@ -6,7 +6,7 @@ const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1 }
   };
-export const AchievementCard = ({ achievement, index }) => (
+const AchievementCard = ({ achievement, index }) => (
     <motion.div
       variants={itemVariants}
       initial="hidden"
@@ -27,3 +27,4 @@ export const AchievementCard = ({ achievement, index }) => (
       </p>
     </motion.div>
   );
+export default AchievementCard;

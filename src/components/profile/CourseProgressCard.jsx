@@ -6,7 +6,7 @@ const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: { y: 0, opacity: 1 },
 };
-export const CourseProgressCard = ({ course, index }) => (
+const CourseProgressCard = ({ course, index }) => (
   <motion.div
     variants={itemVariants}
     initial="hidden"
@@ -39,3 +39,5 @@ export const CourseProgressCard = ({ course, index }) => (
     </div>
   </motion.div>
 );
+
+export default CourseProgressCard;

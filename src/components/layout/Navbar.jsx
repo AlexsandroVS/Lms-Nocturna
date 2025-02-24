@@ -37,7 +37,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-[#d62828] h-auto shadow-xl fixed w-full top-0 z-50">
+    <nav className="bg-navbar h-auto shadow-xl fixed w-full top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo y menú de escritorio */}

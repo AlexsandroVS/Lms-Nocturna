@@ -8,7 +8,7 @@ const ProtectedRoute = ({ roles = [], layout: Layout = ({ children }) => childre
   const { currentUser, loading } = useAuth();
 
   if (loading) return <p>Cargando...</p>;
-
+  
   if (!currentUser) {
     return <Navigate to="/" replace />;
   }

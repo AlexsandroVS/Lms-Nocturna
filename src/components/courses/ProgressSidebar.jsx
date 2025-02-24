@@ -40,7 +40,7 @@ const ProgressSidebar = ({ course, color }) => {
   );
 };
 
-const ResourcesSection = ({ resources, color }) => (
+const ResourcesSection = ({ resources = [], color }) => (
   <motion.div
     initial={{ y: 20, opacity: 0 }}
     animate={{ y: 0, opacity: 1 }}

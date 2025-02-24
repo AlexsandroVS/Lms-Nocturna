@@ -1,115 +1,169 @@
-/* eslint-disable react/prop-types */
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { cardVariants } from "../../utils/animationUtils";
+import {
+  faBookOpen,
+  faChalkboardTeacher,
+  faLaptopCode,
+  faGraduationCap,
+  faClock,
+  faArrowRight,
+  faEdit,
+  faTrash,
+  faRobot,
+  faMicrochip,
+  faTools,
+  faBolt,
+} from "@fortawesome/free-solid-svg-icons";
 
-export const CourseCard = ({ course }) => {
+const ICON_MAP = {
+  "book-open": faBookOpen,
+  "chalkboard-teacher": faChalkboardTeacher,
+  "laptop-code": faLaptopCode,
+  "graduation-cap": faGraduationCap,
+  bolt: faBolt,
+  robot: faRobot,
+  microchip: faMicrochip,
+  tools: faTools,
+};
+
+const STATUS_CONFIG = {
+  active: { color: "bg-green-100 text-green-700", label: "Activo" },
+  archived: { color: "bg-gray-100 text-gray-700", label: "Archivado" },
+  inactive: { color: "bg-amber-100 text-amber-700", label: "Inactivo" },
+  draft: { color: "bg-blue-100 text-blue-700", label: "Borrador" },
+};
+
+const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
+  const navigate = useNavigate();
+
+  const {
+    id,
+    title = "Curso sin título",
+    description = "",
+    icon = "book-open",
+    status = "draft",
+    durationHours = 0,
+    createdByName = "Desconocido",
+    color = "#4F46E5",
+    progress = 0,
+  } = course || {};
+
+  const { color: statusColor, label: statusLabel } =
+    STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+  const iconFa = ICON_MAP[icon] || faBookOpen;
+
+  const handleCardClick = () => navigate(`/courses/${id}`);
+
+  const handleAdminClick = (e, callback) => {
+    e.preventDefault();
+    e.stopPropagation();
+    callback?.(course);
+  };
+
   return (
-    <Link to={`/courses/${course.id}`} className="block h-full group">
-      <motion.div
-        className="relative h-full bg-gradient-to-b from-white to-gray-50 shadow-lg rounded-2xl p-6 cursor-pointer flex flex-col justify-between overflow-hidden transform transition-all duration-300 hover:shadow-2xl"
-        variants={cardVariants}
-        initial="hidden"
-        animate="visible"
-        whileHover="hover"
-      >
-        {/* Efecto de brillo al hover */}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <div
-            className="absolute w-32 h-32 bg-gradient-radial from-white/30 to-transparent"
-            style={{
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
+    <motion.div
+      className="group bg-white shadow-md rounded-xl p-4 hover:shadow-lg h-[350px] flex flex-col justify-between relative overflow-hidden cursor-pointer border border-gray-100"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      onClick={handleCardClick}
+    >
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-4">
+        {/* Admin Actions */}
+        {isAdmin && (
+          <div className="flex gap-2 z-10">
+            <button
+              onClick={(e) => handleAdminClick(e, onEdit)}
+              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              aria-label="Editar curso"
+            >
+              <FontAwesomeIcon icon={faEdit} className="text-gray-500 text-sm" />
+            </button>
+            <button
+              onClick={(e) => handleAdminClick(e, onDelete)}
+              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              aria-label="Eliminar curso"
+            >
+              <FontAwesomeIcon icon={faTrash} className="text-red-500 text-sm" />
+            </button>
+          </div>
+        )}
+
+        {/* Course Icon */}
+        <div
+          className="w-8 h-8 flex items-center justify-center rounded-lg bg-opacity-20 backdrop-blur-sm"
+          style={{ backgroundColor: `${color}30` }}
+        >
+          <FontAwesomeIcon icon={iconFa} className="text-lg" style={{ color }} />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Metadata */}
+        <div className="mb-3 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+            {durationHours > 0 && (
+              <span className="flex items-center gap-1 text-gray-600">
+                <FontAwesomeIcon icon={faClock} className="text-[0.8em]" />
+                {durationHours}h
+              </span>
+            )}
+            <span className={`${statusColor} px-2 py-1 rounded-full`}>
+              {statusLabel}
+            </span>
+          </div>
+          <span className="text-xs text-gray-500 block">Creado por: {createdByName}</span>
         </div>
 
-        {/* Icono animado */}
-        <motion.div
-          className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-sm bg-white/30"
-          style={{ color: course.color }}
-          whileHover={{ scale: 1.1, rotate: 10 }}
-        >
-          <FontAwesomeIcon icon={course.icon} className="text-xl" />
-        </motion.div>
+        {/* Title & Description */}
+        <div className="mb-4 space-y-2 flex-1 overflow-hidden">
+          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 leading-snug">
+            {title}
+          </h3>
+          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+            {description || "Descripción no disponible"}
+          </p>
+        </div>
 
-        {/* Contenido principal */}
-        <div className="h-full flex flex-col pt-4 space-y-4">
-          <div className="flex-1">
-            <span
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: course.color }}
+        {/* Progress Section */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-gray-600 font-medium">
+              <span>Progreso</span>
+              <span>{progress}%</span>
+            </div>
+            <motion.div
+              className="h-2 bg-gray-200 rounded-full overflow-hidden"
+              initial={{ width: 0 }}
+              animate={{ width: "100%" }}
             >
-              {course.duration}
-            </span>
-
-            <motion.h3
-              className="text-2xl font-bold text-gray-900 mt-2 line-clamp-2 leading-tight"
-              layoutId={`title-${course.id}`}
-            >
-              {course.title}
-            </motion.h3>
-
-            <motion.p
-              className="text-gray-600 text-sm line-clamp-3 leading-relaxed mt-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              {course.description}
-            </motion.p>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${progress}%`, backgroundColor: color }}
+              />
+            </motion.div>
           </div>
 
-          {/* Sección inferior */}
-          <motion.div className="border-t pt-4 space-y-4">
-            <div className="mb-2">
-              <div className="flex justify-between text-xs text-gray-500 mb-2">
-                <span>Progreso</span>
-                <span>{course.progress}%</span>
-              </div>
-              <motion.div
-                className="h-2 bg-gray-200 rounded-full overflow-hidden"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.8, type: "spring" }}
-              >
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: course.color }}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${course.progress}%` }}
-                  transition={{ duration: 1.5, type: "spring" }}
-                />
-              </motion.div>
-            </div>
-
-            <motion.button
-              className="w-full cursor-pointer py-3 text-white rounded-xl font-medium flex items-center justify-center relative overflow-hidden"
-              style={{ backgroundColor: course.color }}
-              whileHover={{
-                scale: 1.02,
-                boxShadow: `0 8px 24px ${course.color}40`,
-              }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Ver curso completo
-                <motion.span
-                  initial={{ x: 0 }}
-                  animate={{ x: 0 }}
-                  whileHover={{ x: 5 }}
-                >
-                  <FontAwesomeIcon icon={faArrowRight} className="text-sm" />
-                </motion.span>
-              </span>
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </motion.button>
-          </motion.div>
+          {/* Action Button */}
+          <button
+            className="w-full py-2 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: color }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/courses/${id}`);
+            }}
+          >
+            Ver curso
+            <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+          </button>
         </div>
-      </motion.div>
-    </Link>
+      </div>
+    </motion.div>
   );
 };
+
+export default CoursesCard;

@@ -2,7 +2,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {motion} from "framer-motion"
 
-export const StatCard = ({ icon, title, value, color }) => (
+const StatCard = ({ icon, title, value, color }) => (
     <motion.div
       whileHover={{ y: -5 }}
       whileTap={{ scale: 0.98 }}
@@ -20,4 +20,5 @@ export const StatCard = ({ icon, title, value, color }) => (
       </div>
     </motion.div>
   );
-  
+
+export default StatCard;

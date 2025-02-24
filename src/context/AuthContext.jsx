@@ -1,93 +1,110 @@
-/* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
-import axios from 'axios';
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
-// Configurar axios para usar la URL base y enviar el token automáticamente
+// Configurar axios con la URL base
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Estado de carga
   const navigate = useNavigate();
 
   useEffect(() => {
-    initializeAuth();
-  }, []);
+    initializeAuth(); // Llamar a initializeAuth en un solo efecto
+  }, []); // Solo se ejecuta una vez cuando el componente se monta
 
   const initializeAuth = async () => {
-    const token = localStorage.getItem('jwtToken');
-    
-    if (token) {
+    const userData = localStorage.getItem("userData");
+    const token = localStorage.getItem("jwtToken");
+
+    if (userData && token) {
+      setCurrentUser(JSON.parse(userData)); // Establecer el usuario desde localStorage
+
       try {
-        // Verificar token con el backend
-        const response = await api.get('/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
+        const response = await api.get("/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        
-        setCurrentUser(response.data.user);
+
+        // Si la respuesta es exitosa, actualizar el estado `currentUser` y `localStorage`
+        if (response.data.user) {
+          const user = response.data.user;
+          setCurrentUser(user);
+          localStorage.setItem("userData", JSON.stringify(user));
+        }
       } catch (error) {
-        handleAuthError(error);
+        console.error("Error verificando autenticación:", error.response?.data);
+        if (error.response?.status === 401) {
+          await logout(); // Si el token es inválido, se cierra la sesión
+        }
       }
+    } else {
+      await logout(); // Si no se encuentran los datos, desloguear
     }
-    setLoading(false);
+
+    setLoading(false); // Cambiar el estado de carga
+  };
+
+  const updateUserAvatar = (newAvatar) => {
+    setCurrentUser((prevUser) => ({
+      ...prevUser,
+      avatar: newAvatar.startsWith("http")
+        ? newAvatar
+        : `http://localhost:5000${newAvatar}`,
+    }));
+
+    const updatedUser = {
+      ...JSON.parse(localStorage.getItem("userData")),
+      avatar: newAvatar,
+    };
+    localStorage.setItem("userData", JSON.stringify(updatedUser));
   };
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', {
-        email,
-        password
-      });
-
+      const response = await api.post("/auth/login", { email, password });
       const { token, user } = response.data;
-      
-      // Almacenar token y datos básicos del usuario
-      localStorage.setItem('jwtToken', token);
-      localStorage.setItem('userData', JSON.stringify(user));
-      
-      setCurrentUser(user);
-      navigate(user.role === 'admin' ? '/dashboard' : '/');
-      return true;
+
+      // Almacenar el token y los datos del usuario
+      localStorage.setItem("jwtToken", token);
+      localStorage.setItem("userData", JSON.stringify(user));
+
+      setCurrentUser(user); // Establecer el usuario en el estado
+
+      return { success: true, user };
     } catch (error) {
-      handleAuthError(error);
-      return false;
+      let errorMessage = "Error de conexión. Inténtalo de nuevo.";
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = "Credenciales incorrectas";
+        } else {
+          errorMessage = error.response.data.error || "Error inesperado";
+        }
+      }
+      return { success: false, message: errorMessage };
     }
   };
 
-  const logout = () => {
-    // Limpiar almacenamiento
-    localStorage.removeItem('jwtToken');
-    localStorage.removeItem('userData');
-  
-    // Primero redirigir al usuario
-    navigate("/", { replace: true });
-  
-    // Luego limpiar el estado (esto previene posibles re-renderizados antes de la redirección)
-    setTimeout(() => {
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Error en logout backend:", error);
+    } finally {
+      localStorage.removeItem("jwtToken");
+      localStorage.removeItem("userData");
       setCurrentUser(null);
-    }, 100);
-  
-    // Opcional: Llamar a endpoint de logout en el backend
-    api.post('/auth/logout').catch((error) => console.error("Error en logout:", error));
-  };
-  
-
-  const handleAuthError = (error) => {
-    console.error('Error de autenticación:', error);
-    
-    if (error.response?.status === 401) {
-      logout();
+      navigate("/", { replace: true });
     }
   };
 
-  // Interceptor para incluir token en cada petición
-  api.interceptors.request.use(config => {
-    const token = localStorage.getItem('jwtToken');
+  // Interceptor para incluir el token en todas las peticiones
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem("jwtToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -96,19 +113,17 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
-    loading,
+    setCurrentUser,
     login,
+    updateUserAvatar,
     logout,
-    isAdmin: currentUser?.role === 'admin',
-    isTeacher: currentUser?.role === 'teacher',
-    api // Exportar instancia de axios configurada
+    isAdmin: currentUser?.role === "admin",
+    isTeacher: currentUser?.role === "teacher",
+    api,
+    loading, // Para indicar si aún estamos cargando los datos del usuario
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => {

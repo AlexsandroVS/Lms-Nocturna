@@ -1,88 +1,145 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
 import CourseHeader from "../components/courses/CourseHeader";
 import ModuleList from "../components/module/ModuleList";
 import ProgressSidebar from "../components/courses/ProgressSidebar";
-import ModuleModal from "../components/module/ModuleModal";
-import courses from "../data/courses";
 import { calculateCourseProgress } from "../utils/courseUtils";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { CreateModuleModal } from "../admin/modals/CreateModuleModal";
+import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
+import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
 
 const CoursePage = () => {
+  const { api } = useAuth();
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const [selectedModule, setSelectedModule] = useState(null);
+
+  // Estados para curso, módulos y modales
   const [course, setCourse] = useState(null);
-  const initialModuleLoaded = useRef(false);
+  const [modules, setModules] = useState([]);
+  const [selectedModule, setSelectedModule] = useState(null);
+  const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
+  const [showEditModuleModal, setShowEditModuleModal] = useState(false);
+  const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
 
-  // Cargar el curso solo una vez al montar
-  useEffect(() => {
-    const originalCourse = courses.find((c) => c.id === Number(id));
-    if (originalCourse) {
-      setCourse(calculateCourseProgress(originalCourse));
+  // Función reutilizable para cargar módulos
+  const fetchModules = useCallback(async () => {
+    try {
+      const modulesResp = await api.get(`/courses/${id}/modules`);
+      console.log("Módulos obtenidos:", modulesResp.data); // Aquí revisa si los datos ahora incluyen todos los campos
+  
+      setModules(
+        modulesResp.data?.map((m) => ({
+          ...m,
+          activities: m.activities || [], // Asegura que activities siempre exista
+        })) || []
+      );
+    } catch (err) {
+      console.error("Error al cargar módulos:", err);
+      setModules([]); // Resetear a array vacío
     }
-  }, [id]);
-
-  // Efecto para manejar parámetro de módulo inicial
+  }, [api, id]);
+  
+  // Cargar datos del curso y módulos al montar
   useEffect(() => {
-    if (course && !initialModuleLoaded.current) {
-      const moduleId = searchParams.get("module");
-      if (moduleId) {
-        const module = course.modules.find((m) => m.id === Number(moduleId));
-        if (module) {
-          setSelectedModule(module);
+    console.log("Curso ID:", id); // Verifica si el id está correctamente capturado
+  
+    const controller = new AbortController();
+  
+    const fetchData = async () => {
+      try {
+        const [courseResp, modulesResp] = await Promise.all([
+          api.get(`/courses/${id}`, { signal: controller.signal }),
+          api.get(`/courses/${id}/modules`, { signal: controller.signal }),
+        ]);
+  
+        setCourse(courseResp.data);
+        setModules(modulesResp.data);
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error al cargar curso o módulos:", err);
         }
       }
-      initialModuleLoaded.current = true;
-    }
-  }, [course, searchParams]);
+    };
+  
+    fetchData();
+    return () => controller.abort();
+  }, [id, api]);
+  
 
-  // Manejo de cierre del modal optimizado
-  const handleCloseModal = useCallback(() => {
-    setSelectedModule((prev) => {
-      if (prev) {
-        const newSearchParams = new URLSearchParams(window.location.search);
-        newSearchParams.delete("module");
-        window.history.replaceState(null, "", `?${newSearchParams.toString()}`);
+  // Crear nuevo módulo
+  const handleCreateModule = useCallback(
+    async (moduleData) => {
+      try {
+        await api.post(`/courses/${id}/modules`, moduleData);
+        await fetchModules(); // Actualizar la lista después de crear
+        setShowCreateModuleModal(false);
+      } catch (err) {
+        console.error("Error al crear módulo:", err);
       }
-      return null;
-    });
-  }, []);
+    },
+    [api, id, fetchModules]
+  );
 
-  // Función para selección de módulo optimizada
-  const handleModuleSelect = useCallback((module) => {
-    setSelectedModule(module);
-    const newSearchParams = new URLSearchParams(window.location.search);
-    newSearchParams.set("module", module.id);
-    window.history.replaceState(null, "", `?${newSearchParams.toString()}`);
-  }, []);
+  // Editar módulo
+  const handleEditModule = useCallback(
+    async (moduleData) => {
+      if (!selectedModule?.ModuleID) return;
 
-  // Actualización de actividades optimizada
-  const handleToggleActivity = useCallback((moduleId, activityIndex) => {
-    setCourse((prev) => {
-      const updatedModules = prev.modules.map((module) => {
-        if (module.id === moduleId) {
-          const updatedActivities = [...module.activities];
-          updatedActivities[activityIndex] = {
-            ...updatedActivities[activityIndex],
-            completed: !updatedActivities[activityIndex].completed,
-          };
-          return { ...module, activities: updatedActivities };
-        }
-        return module;
-      });
-      return calculateCourseProgress({ ...prev, modules: updatedModules });
-    });
-  }, []);
+      try {
+        await api.put(
+          `/courses/${id}/modules/${selectedModule.ModuleID}`, // ✅ URL correcta
+          moduleData
+        );
+        await fetchModules();
+        setShowEditModuleModal(false);
+      } catch (err) {
+        console.error("Error al editar módulo:", err);
+      }
+    },
+    [api, id, selectedModule, fetchModules]
+  );
 
-  if (!course) {
+  // Eliminar módulo
+  const handleDeleteModule = useCallback(
+    async (moduleId) => {
+      if (!moduleId) return;
+
+      try {
+        await api.delete(`/courses/${id}/modules/${moduleId}`); // ✅ URL directa
+        await fetchModules();
+        setShowDeleteModuleModal(false);
+      } catch (err) {
+        console.error("Error al eliminar módulo:", err);
+      }
+    },
+    [api, id, fetchModules]
+  );
+
+  // Memoizar cálculos de progreso
+  const courseWithProgress = useMemo(() => {
+    return course ? calculateCourseProgress({ ...course, modules }) : null;
+  }, [course, modules]);
+
+  // Memoizar componentes hijos
+  const MemoizedModuleList = useMemo(() => {
     return (
-      <div className="text-center py-20 text-xl text-red-500">
-        Curso no encontrado
-      </div>
+      <ModuleList
+        modules={modules}
+        color={courseWithProgress?.color}
+        onEditModule={(module) => {
+          setSelectedModule(module);
+          setShowEditModuleModal(true);
+        }}
+        onDeleteModule={(moduleId) => {
+          setSelectedModule(modules.find((m) => m.ModuleID === moduleId));
+          setShowDeleteModuleModal(true);
+        }}
+      />
     );
-  }
+  }, [modules, courseWithProgress?.color]);
 
   return (
     <motion.div
@@ -90,7 +147,24 @@ const CoursePage = () => {
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto p-8"
     >
-      <CourseHeader course={course} color={course.color} />
+      {courseWithProgress && (
+        <CourseHeader
+          course={courseWithProgress}
+          color={courseWithProgress.color}
+          title={course.title}
+        />
+      )}
+
+      {/* Botón para crear módulo */}
+      <div className="mb-4 flex justify-end">
+        <button
+          className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          onClick={() => setShowCreateModuleModal(true)}
+        >
+          <FontAwesomeIcon icon={faPlus} />
+          Crear Módulo
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -99,33 +173,51 @@ const CoursePage = () => {
             animate={{ y: 0, opacity: 1 }}
             className="text-2xl font-bold mb-6 flex items-center"
           >
-            <FontAwesomeIcon
-              icon={course.icon}
-              className="mr-3 text-3xl transition-transform hover:scale-110"
-              style={{ color: course.color }}
-            />
+            {courseWithProgress && (
+              <FontAwesomeIcon
+                icon={courseWithProgress.icon}
+                className="mr-3 text-3xl transition-transform hover:scale-110"
+                style={{ color: courseWithProgress.color }}
+              />
+            )}
             Módulos del Curso
           </motion.h2>
 
-          <ModuleList
-            modules={course.modules}
-            color={course.color}
-            onModuleSelect={handleModuleSelect}
-          />
+          {MemoizedModuleList}
         </div>
 
-        <ProgressSidebar course={course} color={course.color} />
+        {courseWithProgress && (
+          <ProgressSidebar
+            course={courseWithProgress}
+            color={courseWithProgress.color}
+          />
+        )}
       </div>
 
-      {selectedModule && (
-        <ModuleModal
-          key={selectedModule.id}
+      {/* Modal para crear módulo */}
+      {showCreateModuleModal && (
+        <CreateModuleModal
+          courseId={Number(id)}
+          onClose={() => setShowCreateModuleModal(false)}
+          onSave={handleCreateModule}
+        />
+      )}
+
+      {/* Modal para editar módulo */}
+      {showEditModuleModal && selectedModule && (
+        <EditModuleModal
           module={selectedModule}
-          color={course.color}
-          onClose={handleCloseModal}
-          onToggleActivity={(index) =>
-            handleToggleActivity(selectedModule.id, index)
-          }
+          onClose={() => setShowEditModuleModal(false)}
+          onSave={handleEditModule}
+        />
+      )}
+
+      {/* Modal para eliminar módulo */}
+      {showDeleteModuleModal && selectedModule && (
+        <DeleteModuleModal
+          module={selectedModule}
+          onClose={() => setShowDeleteModuleModal(false)}
+          onConfirm={() => handleDeleteModule(selectedModule.ModuleID)}
         />
       )}
     </motion.div>
