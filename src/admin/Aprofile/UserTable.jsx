@@ -57,6 +57,7 @@ const UserTable = ({ users, onEdit, onDelete }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-red-50">
+            {/* Iterar sobre los usuarios y mostrar su información */}
             {users.map((user, index) => (
               <motion.tr
                 key={user.id}
@@ -117,6 +118,7 @@ const UserTable = ({ users, onEdit, onDelete }) => {
                 {/* Columna de estado */}
                 <td className="px-6 py-4">
                   <div className="flex flex-col items-start space-y-2">
+                    {/* Verificar el estado de 'isActive' */}
                     <StatusBadge active={user.isActive} />
                     <span className="text-md text-gray-500">
                       Último login:{" "}
@@ -239,3 +241,4 @@ const UserTable = ({ users, onEdit, onDelete }) => {
 };
 
 export default UserTable;
+

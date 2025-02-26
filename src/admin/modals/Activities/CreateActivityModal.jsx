@@ -6,14 +6,15 @@ import {
   faTimes,
   faSave,
   faExclamationTriangle,
+  faFile,
+  faFilePdf,
+  faFileWord,
 } from "@fortawesome/free-solid-svg-icons";
 
-// CreateActivityModal.jsx
 const CreateActivityModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    type: "pdf",
     file: null,
     deadline: "",
   });
@@ -27,7 +28,34 @@ const CreateActivityModal = ({ onClose, onSave }) => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFormData({ ...formData, file });
+    if (file) {
+      // Validar el tipo de archivo
+      const allowedTypes = [
+        "application/pdf",  // PDF
+        "application/msword",  // Word (.doc)
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // Word (.docx)
+        "image/jpeg", // JPEG
+        "image/png", // PNG
+        "video/mp4", // MP4
+        "video/avi", // AVI
+        "video/mov", // MOV
+        "video/webm", // WebM
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        setError("Tipo de archivo no permitido. Solo se permiten PDF y Word.");
+        return;
+      }
+
+      // Validar el tamaño del archivo (50 MB)
+      if (file.size > 50 * 1024 * 1024) {
+        setError("El archivo es demasiado grande. El límite es 50 MB.");
+        return;
+      }
+
+      setError("");
+      setFormData({ ...formData, file });
+    }
   };
 
   const handleSubmit = () => {
@@ -41,6 +69,19 @@ const CreateActivityModal = ({ onClose, onSave }) => {
     }
     setError("");
     onSave(formData);
+  };
+
+  const getFileIcon = (fileType) => {
+    if (fileType === "application/pdf") {
+      return faFilePdf;
+    } else if (
+      fileType === "application/msword" ||
+      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      return faFileWord;
+    } else {
+      return faFile;
+    }
   };
 
   return (
@@ -104,17 +145,40 @@ const CreateActivityModal = ({ onClose, onSave }) => {
             />
           </div>
 
-          {/* Subir Archivo PDF */}
+          {/* Subir Archivo */}
           <div>
             <label className="block text-gray-700 font-semibold mb-1">
-              Archivo PDF:
+              Archivo (PDF o Word):
             </label>
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="w-full p-2 border rounded-lg bg-gray-100"
-            />
+            <div className="flex items-center gap-3">
+              <label
+                className="flex-1 flex flex-col items-center justify-center 
+                border-2 border-dashed border-gray-300 rounded-lg p-6 
+                hover:border-blue-500 transition-colors cursor-pointer"
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <FontAwesomeIcon
+                  icon={formData.file ? getFileIcon(formData.file.type) : faFile}
+                  className={`text-xl mb-2 ${
+                    formData.file
+                      ? formData.file.type === "application/pdf"
+                        ? "text-red-500"
+                        : "text-blue-500"
+                      : "text-gray-400"
+                  }`}
+                />
+                <p className="text-sm text-center">
+                  {formData.file
+                    ? formData.file.name
+                    : "Haz click o arrastra tu archivo"}
+                </p>
+              </label>
+            </div>
           </div>
 
           {/* Fecha límite */}

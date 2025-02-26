@@ -4,156 +4,294 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUpload,
   faTimes,
-  faArrowRight
+  faFile,
+  faDownload,
+  faSpinner,
+  faArrowRight,
+  faFilePdf,
+  faFileVideo,
+  faFileWord,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../../context/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
 
 const ActivityDetailsModal = ({ activity, onClose }) => {
   const { api, currentUser } = useAuth();
+  const { courseId, moduleId } = useParams();
   const navigate = useNavigate();
-  const { courseId, moduleId } = useParams(); // Obtener courseId y moduleId de los parámetros
-  const [files, setFiles] = useState([]);
   const [file, setFile] = useState(null);
-  const [loadingFiles, setLoadingFiles] = useState(true);
+  const [loading, setLoading] = useState({
+    upload: false,
+  });
+  const [uploadError, setUploadError] = useState(null);
+  const [adminFile, setAdminFile] = useState(null); // Archivo del admin (guía)
 
   useEffect(() => {
-    // Cargar archivos subidos por los usuarios
-    const fetchFiles = async () => {
+    const fetchAdminFile = async () => {
       try {
         const response = await api.get(
           `/activities/${activity.ActivityID}/files`
         );
-        setFiles(response.data);
+        // Filtrar el archivo del admin (guía)
+        const adminFile = response.data.find(
+          (file) => file.ActivityID === activity.ActivityID
+        );
+        setAdminFile(adminFile || null);
       } catch (error) {
-        console.error("Error al obtener los archivos:", error);
-      } finally {
-        setLoadingFiles(false);
+        console.error("Error al obtener el archivo del admin:", error);
       }
     };
 
-    fetchFiles();
-  }, [activity.ActivityID]);
+    fetchAdminFile();
+  }, [activity.ActivityID, api]);
 
   const handleFileUpload = async () => {
     if (!file) {
-      alert("Por favor, selecciona un archivo.");
+      setUploadError("Por favor selecciona un archivo");
       return;
     }
 
+    // Validar el tipo de archivo
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError(
+        "Tipo de archivo no permitido. Solo se permiten PDF y Word."
+      );
+      return;
+    }
+
+    setLoading({ upload: true });
+    setUploadError(null);
+
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("courseId", courseId);
 
     try {
-      // Asegúrate de que `activity.ActivityID` esté correctamente configurado en el frontend
       await api.post(
         `/courses/${courseId}/modules/${moduleId}/activities/${activity.ActivityID}/files`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
-      // Actualizar la lista de archivos después de subir uno nuevo
-      setFiles((prevFiles) => [...prevFiles, { fileName: file.name }]);
       alert("Archivo subido con éxito");
+    // eslint-disable-next-line no-unused-vars
     } catch (error) {
-      console.error("Error al subir el archivo:", error);
+      setUploadError("Error al subir el archivo. Intenta nuevamente.");
+    } finally {
+      setLoading({ upload: false });
+      setFile(null);
     }
-  };  
-  const redirectToUserFiles = () => {
-    navigate(`/files/${activity.ActivityID}`); // Redirigir a la página de archivos subidos por usuarios
+  };
+
+  const getFileIcon = (fileType) => {
+    if (fileType === "application/pdf") {
+      return faFilePdf;
+    } else if (
+      fileType === "application/msword" ||
+      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      return faFileWord;
+    } else if (fileType.startsWith("video/")) {
+      return faFileVideo; // Puedes usar un icono de video si lo tienes
+    } else {
+      return faFile;
+    }
+  };
+
+  const FileCard = ({ file }) => {
+    const [loading, setLoading] = useState(false);
+    const { api } = useAuth();
+  
+    // Verificar si el archivo es un video
+    const isVideo = file.FileType.startsWith("video/");
+  
+    // Obtener la URL completa del archivo
+    const fileUrl = `${api.defaults.baseURL}/files/${file.FileID}`;
+  
+    const handleDownload = async () => {
+      try {
+        setLoading(true);
+  
+        // Realiza la solicitud al servidor para descargar el archivo usando `api`
+        const response = await api.get(`/files/${file.FileID}`, {
+          responseType: "blob", // Indica que la respuesta es un archivo binario
+        });
+  
+        // Crea un enlace temporal para descargar el archivo
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.FileName; // Usa el nombre original del archivo
+        document.body.appendChild(link);
+        link.click();
+  
+        // Limpia el enlace temporal
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error al descargar el archivo:", error);
+        alert("Hubo un error al descargar el archivo. Inténtalo de nuevo.");
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    return (
+      <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <div className="flex items-center gap-3">
+          <FontAwesomeIcon
+            icon={getFileIcon(file.FileType)}
+            className={`text-xl ${
+              file.FileType === "application/pdf"
+                ? "text-red-500"
+                : file.FileType.includes("word")
+                ? "text-blue-500"
+                : "text-gray-500"
+            }`}
+          />
+          <span className="text-gray-700 truncate max-w-[200px]">
+            {file.FileName}
+          </span>
+        </div>
+  
+        {isVideo ? (
+          // Mostrar reproductor de video si el archivo es un video
+          <div className="w-full">
+            <video
+              controls
+              className="w-full h-auto max-h-96 rounded-lg shadow-md"
+            >
+              <source src={fileUrl} type={file.FileType} />
+              Tu navegador no soporta la reproducción de videos.
+            </video>
+          </div>
+        ) : (
+          // Mostrar botón de descarga si no es un video
+          <button
+            onClick={handleDownload}
+            disabled={loading}
+            className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition-colors"
+          >
+            {loading ? (
+              <FontAwesomeIcon icon={faSpinner} spin />
+            ) : (
+              <FontAwesomeIcon icon={faDownload} />
+            )}
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md bg-black/30">
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-3xl w-full relative overflow-hidden transition-all transform-gpu">
-        {/* Botón Cerrar */}
+      <div className="bg-white p-6 rounded-xl shadow-xl max-w-2xl w-full mx-4 relative">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition duration-200 transform hover:scale-110"
+          className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <FontAwesomeIcon icon={faTimes} size="lg" />
         </button>
 
-        {/* Título */}
-        <h2 className="text-4xl font-bold text-gray-800 text-center mb-6">
-          Detalles de la Actividad
+        <h2 className="text-3xl font-bold text-gray-800 mb-5">
+          {activity.Title}
         </h2>
 
-        <div className="mb-4">
-          <strong className="text-gray-700">Título:</strong>
-          <p className="text-lg text-gray-800">{activity.Title}</p>
-        </div>
-        <div className="mb-4">
-          <strong className="text-gray-700">Descripción:</strong>
-          <p className="text-lg text-gray-800">{activity.Description}</p>
-        </div>
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="text-sm font-medium text-gray-500">
+              Descripción
+            </label>
+            <p className="text-gray-700 mt-1 whitespace-pre-wrap">
+              {activity.Content || "Sin descripción"}
+            </p>
+          </div>
+          
 
-        <div className="mb-6">
-          <strong className="text-gray-700">Archivo Subido:</strong>
-          {activity.FileName ? (
-            <a
-              href={`/files/${activity.FileID}`}
-              className="text-blue-600 hover:text-blue-800 text-lg font-semibold"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Descargar
-            </a>
+          {adminFile ? (
+            <div>
+              <label className="text-sm font-medium text-gray-500">
+                Guía de la actividad
+              </label>
+              <FileCard file={adminFile} />
+            </div>
           ) : (
-            <p className="text-gray-600 italic">
-              No se ha subido un archivo aún.
+            <p className="text-gray-500 text-sm">
+              No hay una guía disponible para esta actividad.
             </p>
           )}
         </div>
 
         {currentUser?.role === "admin" && (
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              Archivos Subidos por Usuarios:
-            </h3>
-            {loadingFiles ? (
-              <p className="text-gray-600">Cargando archivos...</p>
-            ) : files.length > 0 ? (
-              <ul className="list-disc pl-6">
-                {files.map((file, index) => (
-                  <li key={index} className="text-gray-700 text-lg">
-                    {file.fileName}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-gray-600">
-                No hay archivos subidos por los usuarios.
-              </p>
-            )}
-            <button
-              onClick={redirectToUserFiles}
-              className="mt-4 px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200 flex items-center gap-2"
-            >
-              <FontAwesomeIcon icon={faArrowRight} className="mr-2" />
-              Ver Archivos Subidos
-            </button>
+          <div className="border-t pt-5">
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={() => navigate(`/files/${activity.ActivityID}`)}
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm"
+              >
+                Ver detalle
+                <FontAwesomeIcon icon={faArrowRight} size="xs" />
+              </button>
+            </div>
           </div>
         )}
 
         {currentUser?.role !== "admin" && (
-          <div className="mt-6 flex flex-col items-center space-y-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              Subir Tarea (Archivo):
-            </h3>
-            <input
-              type="file"
-              onChange={(e) => setFile(e.target.files[0])}
-              className="p-2 border border-gray-300 rounded-lg w-full max-w-xs"
-            />
-            <button
-              onClick={handleFileUpload}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 flex items-center gap-2"
-            >
-              <FontAwesomeIcon icon={faUpload} className="mr-2" />
-              Subir Archivo
-            </button>
+          <div className="border-t pt-5">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Subir entrega
+              </h3>
+
+              <div className="flex flex-col gap-3">
+                <label
+                  className="w-full flex flex-col items-center justify-center 
+                  border-2 border-dashed border-gray-300 rounded-lg p-6 
+                  hover:border-blue-500 transition-colors cursor-pointer"
+                >
+                  <input
+                    type="file"
+                    onChange={(e) => setFile(e.target.files[0])}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx"
+                  />
+                  <FontAwesomeIcon
+                    icon={file ? faFile : faUpload}
+                    className={`text-xl mb-2 ${
+                      file ? "text-blue-500" : "text-gray-400"
+                    }`}
+                  />
+                  <p className="text-sm text-center">
+                    {file ? file.name : "Haz click o arrastra tu archivo"}
+                  </p>
+                </label>
+
+                {uploadError && (
+                  <p className="text-red-500 text-sm">{uploadError}</p>
+                )}
+
+                <button
+                  onClick={handleFileUpload}
+                  disabled={loading.upload || !file}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg
+                    hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed
+                    transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading.upload ? (
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faUpload} />
+                      Subir archivo
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

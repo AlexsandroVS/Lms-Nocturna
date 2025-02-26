@@ -32,7 +32,6 @@ const AdminProfile = () => {
 
   useEffect(() => {
     // Puedes dejar el console.log para depuración
-    console.log(users);
     fetchUsers();
   }, []);
 
@@ -41,7 +40,7 @@ const AdminProfile = () => {
     setError("");
     try {
       const response = await api.get("/users");
-      // Mapear los usuarios normalizando las claves y usando getAvatarUrl
+      // Mapeo de los usuarios, asegurándonos de convertir isActive a un valor booleano
       const mappedUsers = response.data.map((u) => ({
         id: u.UserID,
         name: u.Name,
@@ -50,7 +49,7 @@ const AdminProfile = () => {
         avatar: u.Avatar ? getAvatarUrl(u.Avatar) : defaultAvatar,
         registrationDate: u.RegistrationDate,
         lastLogin: u.LastLogin,
-        isActive: u.isActive,
+        isActive: u.IsActive === 1,  // Convertimos el valor de 0 o 1 a un booleano (true/false)
       }));
       setUsers(mappedUsers);
     } catch (err) {
@@ -60,6 +59,7 @@ const AdminProfile = () => {
       setLoading(false);
     }
   };
+  
 
   // Filtrado de usuarios según la búsqueda (por nombre, email o rol)
   const filteredUsers = users.filter(

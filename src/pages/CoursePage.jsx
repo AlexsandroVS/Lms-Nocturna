@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext"; // Importamos useAuth
 import CourseHeader from "../components/courses/CourseHeader";
 import ModuleList from "../components/module/ModuleList";
 import ProgressSidebar from "../components/courses/ProgressSidebar";
@@ -13,7 +13,7 @@ import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
 
 const CoursePage = () => {
-  const { api } = useAuth();
+  const { api, currentUser } = useAuth(); // Accedemos al currentUser de useAuth
   const { id } = useParams();
 
   // Estados para curso, módulos y modales
@@ -28,12 +28,10 @@ const CoursePage = () => {
   const fetchModules = useCallback(async () => {
     try {
       const modulesResp = await api.get(`/courses/${id}/modules`);
-      console.log("Módulos obtenidos:", modulesResp.data); // Aquí revisa si los datos ahora incluyen todos los campos
-  
       setModules(
         modulesResp.data?.map((m) => ({
           ...m,
-          activities: m.activities || [], // Asegura que activities siempre exista
+          activities: m.activities || [],
         })) || []
       );
     } catch (err) {
@@ -41,20 +39,22 @@ const CoursePage = () => {
       setModules([]); // Resetear a array vacío
     }
   }, [api, id]);
-  
+
   // Cargar datos del curso y módulos al montar
   useEffect(() => {
-    console.log("Curso ID:", id); // Verifica si el id está correctamente capturado
-  
     const controller = new AbortController();
-  
+
     const fetchData = async () => {
       try {
         const [courseResp, modulesResp] = await Promise.all([
           api.get(`/courses/${id}`, { signal: controller.signal }),
           api.get(`/courses/${id}/modules`, { signal: controller.signal }),
         ]);
-  
+        
+        // Depuración: Verifica los datos del curso
+        console.log("Course data:", courseResp.data);
+        console.log("Modules data:", modulesResp.data);
+
         setCourse(courseResp.data);
         setModules(modulesResp.data);
       } catch (err) {
@@ -63,11 +63,10 @@ const CoursePage = () => {
         }
       }
     };
-  
+
     fetchData();
     return () => controller.abort();
   }, [id, api]);
-  
 
   // Crear nuevo módulo
   const handleCreateModule = useCallback(
@@ -90,7 +89,7 @@ const CoursePage = () => {
 
       try {
         await api.put(
-          `/courses/${id}/modules/${selectedModule.ModuleID}`, // ✅ URL correcta
+          `/courses/${id}/modules/${selectedModule.ModuleID}`,
           moduleData
         );
         await fetchModules();
@@ -108,7 +107,7 @@ const CoursePage = () => {
       if (!moduleId) return;
 
       try {
-        await api.delete(`/courses/${id}/modules/${moduleId}`); // ✅ URL directa
+        await api.delete(`/courses/${id}/modules/${moduleId}`);
         await fetchModules();
         setShowDeleteModuleModal(false);
       } catch (err) {
@@ -123,12 +122,15 @@ const CoursePage = () => {
     return course ? calculateCourseProgress({ ...course, modules }) : null;
   }, [course, modules]);
 
+  // Solo extraer el color del curso
+  const courseColor = courseWithProgress?.color;
+
   // Memoizar componentes hijos
   const MemoizedModuleList = useMemo(() => {
     return (
       <ModuleList
         modules={modules}
-        color={courseWithProgress?.color}
+        color={courseColor}  // Solo pasa el color
         onEditModule={(module) => {
           setSelectedModule(module);
           setShowEditModuleModal(true);
@@ -139,7 +141,7 @@ const CoursePage = () => {
         }}
       />
     );
-  }, [modules, courseWithProgress?.color]);
+  }, [modules, courseColor]);
 
   return (
     <motion.div
@@ -150,21 +152,23 @@ const CoursePage = () => {
       {courseWithProgress && (
         <CourseHeader
           course={courseWithProgress}
-          color={courseWithProgress.color}
+          color={courseColor}  // Solo pasa el color
           title={course.title}
         />
       )}
 
-      {/* Botón para crear módulo */}
-      <div className="mb-4 flex justify-end">
-        <button
-          className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-2"
-          onClick={() => setShowCreateModuleModal(true)}
-        >
-          <FontAwesomeIcon icon={faPlus} />
-          Crear Módulo
-        </button>
-      </div>
+      {/* Solo mostrar el botón si el usuario es admin */}
+      {currentUser?.role === "admin" && (
+        <div className="mb-4 flex justify-end">
+          <button
+            className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-2"
+            onClick={() => setShowCreateModuleModal(true)}
+          >
+            <FontAwesomeIcon icon={faPlus} />
+            Crear Módulo
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -177,7 +181,7 @@ const CoursePage = () => {
               <FontAwesomeIcon
                 icon={courseWithProgress.icon}
                 className="mr-3 text-3xl transition-transform hover:scale-110"
-                style={{ color: courseWithProgress.color }}
+                style={{ color: courseColor }}  // Aplica el color
               />
             )}
             Módulos del Curso
@@ -189,12 +193,11 @@ const CoursePage = () => {
         {courseWithProgress && (
           <ProgressSidebar
             course={courseWithProgress}
-            color={courseWithProgress.color}
+            color={courseColor}  // Solo pasa el color
           />
         )}
       </div>
 
-      {/* Modal para crear módulo */}
       {showCreateModuleModal && (
         <CreateModuleModal
           courseId={Number(id)}
@@ -203,7 +206,6 @@ const CoursePage = () => {
         />
       )}
 
-      {/* Modal para editar módulo */}
       {showEditModuleModal && selectedModule && (
         <EditModuleModal
           module={selectedModule}
@@ -212,7 +214,6 @@ const CoursePage = () => {
         />
       )}
 
-      {/* Modal para eliminar módulo */}
       {showDeleteModuleModal && selectedModule && (
         <DeleteModuleModal
           module={selectedModule}

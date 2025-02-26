@@ -7,10 +7,11 @@ import DeleteActivityModal from "../admin/modals/Activities/DeleteActivityModal"
 import ActivityDetailsModal from "../admin/modals/Activities/ActivityDetailsModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faEdit, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
 
 const ActivityPage = () => {
   const { api, currentUser } = useAuth();
-  const { courseId, moduleId } = useParams(); // Captura los parámetros de la URL
+  const { courseId, moduleId } = useParams();
   const [module, setModule] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +21,7 @@ const ActivityPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showActivityDetailsModal, setShowActivityDetailsModal] =
-    useState(false);
+  const [showActivityDetailsModal, setShowActivityDetailsModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
 
   // Cargar módulo y actividades
@@ -31,21 +31,21 @@ const ActivityPage = () => {
       setLoading(false);
       return;
     }
-
+  
     const fetchModuleAndActivities = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Solicitar los datos del módulo y actividades
-        const [moduleResp, activitiesResp] = await Promise.all([
-          api.get(`/courses/${courseId}/modules/${moduleId}`),
-          api.get(`/courses/${courseId}/modules/${moduleId}/activities`),
-        ]);
-
+  
+        // Solicitar los datos del módulo
+        const moduleResp = await api.get(`/courses/${courseId}/modules/${moduleId}`);
+  
+        // Solicitar las actividades del módulo
+        const activitiesResp = await api.get(`/courses/${courseId}/modules/${moduleId}/activities`);
+  
         // Actualizar estado con los datos obtenidos
         setModule(moduleResp.data);
-        setActivities(activitiesResp.data);
+        setActivities(activitiesResp.data); // activitiesResp.data será [] si no hay actividades
       } catch (error) {
         console.error("❌ Error al obtener el módulo o actividades:", error);
         setError("No se pudo cargar la información del módulo.");
@@ -53,36 +53,42 @@ const ActivityPage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchModuleAndActivities();
   }, [api, courseId, moduleId]);
-
   // Crear actividad
   const handleCreateActivity = async (newActivity) => {
     const formData = new FormData();
     formData.append("title", newActivity.title);
     formData.append("content", newActivity.content);
     formData.append("type", newActivity.type);
-    formData.append("file", newActivity.file); // Aquí enviamos el archivo
+    formData.append("file", newActivity.file); // Asegúrate de que el archivo está siendo añadido
     formData.append("deadline", newActivity.deadline);
+  
+    // Verificar los datos antes de enviarlos
+    console.log("Datos a enviar:", formData);
+  
     try {
       const response = await api.post(
         `/courses/${courseId}/modules/${moduleId}/activities`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-
-      // Actualizar el estado con la nueva actividad
-      setActivities((prevActivities) => [
-        ...prevActivities,
-        response.data.activity,
-      ]);
-      setShowCreateModal(false);
+  
+      console.log("Respuesta del backend:", response.data); // Verificar la respuesta
+  
+      if (response.data.activity) {
+        setActivities((prevActivities) => [
+          ...prevActivities,
+          response.data.activity,
+        ]);
+        setShowCreateModal(false);
+      }
     } catch (error) {
-      console.error("❌ Error al crear la actividad:", error);
+      console.error("❌ Error al crear la actividad:", error.response?.data || error);
     }
   };
-
+  
   // Editar actividad
   const handleEditActivity = async (updatedActivity) => {
     try {
@@ -140,26 +146,33 @@ const ActivityPage = () => {
       <h1 className="text-4xl font-bold text-gray-800 mb-6">{module?.Title}</h1>
 
       {currentUser?.role === "admin" && (
-        <button
+        <motion.button
           onClick={() => setShowCreateModal(true)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className="mb-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
         >
           <FontAwesomeIcon icon={faPlus} className="mr-2" />
           Agregar Actividad
-        </button>
+        </motion.button>
       )}
 
       <h2 className="text-2xl font-semibold text-gray-700 mb-4">Actividades:</h2>
 
       {activities.length === 0 ? (
-        <p className="text-gray-500 italic">
-          No hay actividades registradas en este módulo.
-        </p>
+        <div className="p-6 bg-white shadow-xl rounded-lg text-center">
+          <p className="text-gray-500 italic">
+            No hay actividades registradas en este módulo.
+          </p>
+        </div>
       ) : (
         <ul className="space-y-6">
           {activities.map((activity) => (
-            <li
+            <motion.li
               key={activity.ActivityID}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
               className="p-6 bg-white shadow-xl rounded-lg flex items-center justify-between"
             >
               <div>
@@ -172,35 +185,41 @@ const ActivityPage = () => {
               <div className="flex gap-4">
                 {currentUser?.role === "admin" && (
                   <>
-                    <button
+                    <motion.button
                       onClick={() => {
                         setSelectedActivity(activity);
                         setShowEditModal(true);
                       }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       className="p-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600"
                     >
                       <FontAwesomeIcon icon={faEdit} />
-                    </button>
-                    <button
+                    </motion.button>
+                    <motion.button
                       onClick={() => {
                         setSelectedActivity(activity);
                         setShowDeleteModal(true);
                       }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                       className="p-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
                     >
                       <FontAwesomeIcon icon={faTrash} />
-                    </button>
+                    </motion.button>
                   </>
                 )}
 
-                <button
+                <motion.button
                   onClick={() => handleShowActivityDetails(activity)}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                   className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Ver Detalles
-                </button>
+                </motion.button>
               </div>
-            </li>
+            </motion.li>
           ))}
         </ul>
       )}

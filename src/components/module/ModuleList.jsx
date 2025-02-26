@@ -27,7 +27,6 @@ const ModuleList = ({
   return (
     <div className="space-y-4">
       {modules.map((module, index) => {
-        console.log("Módulo:", module); // Verifica que cada módulo tenga los datos esperados
         const totalActivities = countActivities(module);
         const totalMinutes = calculateModuleDuration(module);
 
