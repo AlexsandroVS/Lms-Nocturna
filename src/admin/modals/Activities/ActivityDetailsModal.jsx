@@ -7,7 +7,8 @@ import {
   faFile,
   faDownload,
   faSpinner,
-  faArrowRight,
+  faClock,
+  faCheckCircle,
   faFilePdf,
   faFileVideo,
   faFileWord,
@@ -20,44 +21,34 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
   const { courseId, moduleId } = useParams();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState({
-    upload: false,
-  });
+  const [loading, setLoading] = useState({ upload: false, general: false });
   const [uploadError, setUploadError] = useState(null);
-  const [adminFiles, setAdminFiles] = useState([]); // Archivos subidos por admins
+  const [adminFiles, setAdminFiles] = useState([]); // Todos los archivos subidos por admins
 
-  // Obtener la lista de archivos subidos por administradores
+  // Función para obtener todos los archivos subidos por administradores para la actividad
   const fetchAdminFiles = async () => {
     try {
-      // Obtener todos los usuarios
-      const usersResp = await api.get("/users",{
-        headers: {
-          Authorization: `Bearer ${currentUser.token}`  // Asegúrate de que el token esté correctamente configurado
-        }
-      });
-  
-      
-      // Filtrar los administradores
+      const usersResp = await api.get("/users");
       const adminUserIds = usersResp.data
         .filter((user) => user.Role === "admin")
-        .map((user) => user.UserID); // IDs de los administradores
+        .map((user) => user.UserID);
 
-      // Obtener los archivos para la actividad
-      const filesResp = await api.get(`/activities/${activity.ActivityID}/files`);
-
-      // Filtrar archivos para mostrar solo los subidos por admins
-      const adminFiles = filesResp.data.filter((file) =>
-        adminUserIds.includes(file.UserID) // Filtramos por los usuarios administradores
+      const filesResp = await api.get(
+        `/activities/${activity.ActivityID}/files`
       );
-
-      setAdminFiles(adminFiles); // Guardamos los archivos filtrados
+      const filteredFiles = filesResp.data.filter((file) =>
+        adminUserIds.includes(file.UserID)
+      );
+      setAdminFiles(filteredFiles);
     } catch (error) {
       console.error("Error al obtener los archivos de administradores:", error);
     }
   };
 
   useEffect(() => {
-    fetchAdminFiles();
+    if (activity) {
+      fetchAdminFiles();
+    }
   }, [activity.ActivityID, api]);
 
   const handleFileUpload = async () => {
@@ -72,11 +63,13 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
     if (!allowedTypes.includes(file.type)) {
-      setUploadError("Tipo de archivo no permitido. Solo se permiten PDF y Word.");
+      setUploadError(
+        "Tipo de archivo no permitido. Solo se permiten PDF y Word."
+      );
       return;
     }
 
-    setLoading({ upload: true });
+    setLoading({ ...loading, upload: true });
     setUploadError(null);
 
     const formData = new FormData();
@@ -90,12 +83,11 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
         { headers: { "Content-Type": "multipart/form-data" } }
       );
       alert("Archivo subido con éxito");
-      // Volver a cargar los archivos después de subir uno nuevo
       fetchAdminFiles();
     } catch (error) {
       setUploadError("Error al subir el archivo. Inténtalo nuevamente.");
     } finally {
-      setLoading({ upload: false });
+      setLoading({ ...loading, upload: false });
       setFile(null);
     }
   };
@@ -105,164 +97,223 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
       return faFilePdf;
     } else if (
       fileType === "application/msword" ||
-      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      fileType ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
       return faFileWord;
     } else if (fileType.startsWith("video/")) {
-      return faFileVideo; // Icono para videos
+      return faFileVideo;
     } else {
       return faFile;
     }
   };
 
   const FileCard = ({ file }) => {
-    const [loading, setLoading] = useState(false);
+    const [cardLoading, setCardLoading] = useState(false);
     const { api } = useAuth();
-
-    // Verificar si el archivo es un video
     const isVideo = file.FileType.startsWith("video/");
-
-    // Obtener la URL completa del archivo
     const fileUrl = `${api.defaults.baseURL}/files/${file.FileID}`;
 
     const handleDownload = async () => {
       try {
-        setLoading(true);
-
-        // Realiza la solicitud al servidor para descargar el archivo usando `api`
+        setCardLoading(true);
         const response = await api.get(`/files/${file.FileID}`, {
-          responseType: "blob", // Indica que la respuesta es un archivo binario
+          responseType: "blob",
         });
-
-        // Crea un enlace temporal para descargar el archivo
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement("a");
         link.href = url;
-        link.download = file.FileName; // Usa el nombre original del archivo
+        link.download = file.FileName;
         document.body.appendChild(link);
         link.click();
-
-        // Limpia el enlace temporal
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error("Error al descargar el archivo:", error);
         alert("Hubo un error al descargar el archivo. Inténtalo de nuevo.");
       } finally {
-        setLoading(false);
+        setCardLoading(false);
       }
     };
 
     return (
-      <div className="flex flex-col gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-        <div className="flex items-center gap-3">
-          <FontAwesomeIcon
-            icon={getFileIcon(file.FileType)}
-            className={`text-xl ${
-              file.FileType === "application/pdf"
-                ? "text-red-500"
-                : file.FileType.includes("word")
-                ? "text-blue-500"
-                : "text-gray-500"
-            }`}
-          />
-          <span className="text-gray-700 truncate max-w-[200px]">{file.FileName}</span>
+      <div className="group relative flex flex-col gap-4 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 hover:border-blue-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`p-3 rounded-lg ${getFileColorClass(file.FileType)}`}
+            >
+              <FontAwesomeIcon
+                icon={getFileIcon(file.FileType)}
+                className="text-white text-lg"
+              />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-gray-700 truncate">
+                {file.FileName}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {getFileTypeLabel(file.FileType)}
+              </p>
+            </div>
+          </div>
+
+          {!isVideo && (
+            <button
+              onClick={handleDownload}
+              disabled={cardLoading}
+              className="ml-2 px-3 py-2 text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              {cardLoading ? (
+                <FontAwesomeIcon icon={faSpinner} spin className="text-lg" />
+              ) : (
+                <FontAwesomeIcon icon={faDownload} className="text-lg" />
+              )}
+            </button>
+          )}
         </div>
 
-        {/* Verificar si es video o documento y mostrar en consecuencia */}
-        {isVideo ? (
-          <div className="w-full">
-            <video controls className="w-full h-auto max-h-96 rounded-lg shadow-md">
+        {isVideo && (
+          <div className="w-full relative pt-[56.25%]">
+            {" "}
+            {/* 16:9 aspect ratio */}
+            <video
+              controls
+              className="absolute top-0 left-0 w-full h-full rounded-lg bg-black"
+            >
               <source src={fileUrl} type={file.FileType} />
               Tu navegador no soporta la reproducción de videos.
             </video>
           </div>
-        ) : (
-          <button
-            onClick={handleDownload}
-            disabled={loading}
-            className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition-colors"
-          >
-            {loading ? (
-              <FontAwesomeIcon icon={faSpinner} spin />
-            ) : (
-              <FontAwesomeIcon icon={faDownload} />
-            )}
-          </button>
         )}
       </div>
     );
   };
-
+  const getFileColorClass = (fileType) => {
+    if (fileType === "application/pdf") return "bg-red-500";
+    if (fileType.includes("word")) return "bg-blue-500";
+    if (fileType.startsWith("video/")) return "bg-purple-500";
+    return "bg-gray-500";
+  };
+  
+  const getFileTypeLabel = (fileType) => {
+    const typeMap = {
+      "application/pdf": "PDF Document",
+      "application/msword": "Word Document",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word Document",
+      "video/mp4": "MP4 Video",
+      "video/webm": "WebM Video"
+    };
+    return typeMap[fileType] || "File";
+  };
+  
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md bg-black/30">
-      <div className="bg-white p-6 rounded-xl shadow-xl max-w-2xl w-full mx-4 relative">
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40">
+      <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 relative max-h-[90vh] overflow-hidden flex flex-col">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors z-10"
         >
           <FontAwesomeIcon icon={faTimes} size="lg" />
         </button>
-
-        <h2 className="text-3xl font-bold text-gray-800 mb-5">{activity.Title}</h2>
-
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="text-sm font-medium text-gray-500">Descripción</label>
-            <p className="text-gray-700 mt-1 whitespace-pre-wrap">{activity.Content || "Sin descripción"}</p>
-          </div>
-
-          {/* Mostrar los archivos subidos por admins */}
-          {adminFiles.length > 0 ? (
-            <div>
-              <label className="text-sm font-medium text-gray-500">Archivos subidos por admin:</label>
-              <div className="space-y-2">
-                {adminFiles.map((file) => (
-                  <FileCard key={file.FileID} file={file} />
-                ))}
-              </div>
+  
+        <div className="overflow-y-auto flex-1 pr-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">{activity.Title}</h2>
+  
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-xl">
+              <label className="block text-sm font-semibold text-gray-500 mb-2">
+                Descripción de la actividad
+              </label>
+              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {activity.Content || "Esta actividad no tiene descripción."}
+              </p>
             </div>
-          ) : (
-            <p className="text-gray-500 text-sm">No hay archivos subidos por administradores.</p>
-          )}
+  
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Material de apoyo
+                </h3>
+              </div>
+              
+              {adminFiles.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {adminFiles.map((file) => (
+                    <FileCard key={file.FileID} file={file} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-4">
+                    <FontAwesomeIcon icon={faFile} size="2x" />
+                  </div>
+                  <p className="text-gray-500 text-sm">
+                    No hay material disponible para esta actividad
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-
+  
         {currentUser?.role !== "admin" && (
-          <div className="border-t pt-5">
+          <div className="border-t pt-6 mt-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">Subir entrega</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Subir entrega
+              </h3>
+  
               <div className="flex flex-col gap-3">
-                <label
-                  className="w-full flex flex-col items-center justify-center 
-                  border-2 border-dashed border-gray-300 rounded-lg p-6 
-                  hover:border-blue-500 transition-colors cursor-pointer"
-                >
+                <label className="group relative cursor-pointer">
                   <input
                     type="file"
                     onChange={(e) => setFile(e.target.files[0])}
                     className="hidden"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,video/mp4,video/webm"
                   />
-                  <FontAwesomeIcon
-                    icon={file ? faFile : faUpload}
-                    className={`text-xl mb-2 ${file ? "text-blue-500" : "text-gray-400"}`}
-                  />
-                  <p className="text-sm text-center">{file ? file.name : "Haz click o arrastra tu archivo"}</p>
+                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 transition-all group-hover:border-blue-500 group-hover:bg-blue-50">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center transition-colors group-hover:bg-blue-200">
+                        <FontAwesomeIcon
+                          icon={file ? faFile : faUpload}
+                          className={`text-xl ${
+                            file ? "text-blue-600" : "text-gray-400"
+                          } group-hover:text-blue-600`}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-600">
+                          {file ? file.name : "Seleccionar archivo"}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Formatos permitidos: PDF, Word, MP4, WebM
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </label>
-
-                {uploadError && <p className="text-red-500 text-sm">{uploadError}</p>}
-
+  
+                {uploadError && (
+                  <div className="bg-red-50 p-3 rounded-lg">
+                    <p className="text-red-600 text-sm">{uploadError}</p>
+                  </div>
+                )}
+  
                 <button
                   onClick={handleFileUpload}
                   disabled={loading.upload || !file}
-                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 text-white py-3.5 rounded-xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2"
                 >
                   {loading.upload ? (
-                    <FontAwesomeIcon icon={faSpinner} spin />
+                    <>
+                      <FontAwesomeIcon icon={faSpinner} spin />
+                      Subiendo...
+                    </>
                   ) : (
                     <>
                       <FontAwesomeIcon icon={faUpload} />
-                      Subir archivo
+                      Subir entrega
                     </>
                   )}
                 </button>
@@ -273,6 +324,6 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
       </div>
     </div>
   );
-};
+}
 
 export default ActivityDetailsModal;

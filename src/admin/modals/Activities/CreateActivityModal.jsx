@@ -9,12 +9,14 @@ import {
   faFile,
   faFilePdf,
   faFileWord,
+  faVideo,
 } from "@fortawesome/free-solid-svg-icons";
 
 const CreateActivityModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
+    type: "",
     file: null,
     deadline: "",
   });
@@ -29,25 +31,36 @@ const CreateActivityModal = ({ onClose, onSave }) => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar el tipo de archivo
-      const allowedTypes = [
-        "application/pdf",  // PDF
-        "application/msword",  // Word (.doc)
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // Word (.docx)
-        "image/jpeg", // JPEG
-        "image/png", // PNG
-        "video/mp4", // MP4
-        "video/avi", // AVI
-        "video/mov", // MOV
-        "video/webm", // WebM
-      ];
+      let allowedTypes = [];
+      let errorMessage = "";
       
+      switch(formData.type) {
+        case "Documento":
+          allowedTypes = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          ];
+          errorMessage = "Solo se permiten documentos PDF y Word";
+          break;
+        case "Video":
+          allowedTypes = ["video/mp4", "video/avi", "video/mov", "video/webm"];
+          errorMessage = "Solo se permiten archivos de video (MP4, AVI, MOV, WebM)";
+          break;
+        case "Tarea":
+          allowedTypes = ["application/pdf", "text/plain"];
+          errorMessage = "Solo se permiten PDF o archivos de texto";
+          break;
+        default:
+          allowedTypes = [];
+          errorMessage = "Selecciona un tipo de actividad primero";
+      }
+
       if (!allowedTypes.includes(file.type)) {
-        setError("Tipo de archivo no permitido. Solo se permiten PDF y Word.");
+        setError(errorMessage);
         return;
       }
 
-      // Validar el tamaño del archivo (50 MB)
       if (file.size > 50 * 1024 * 1024) {
         setError("El archivo es demasiado grande. El límite es 50 MB.");
         return;
@@ -63,6 +76,10 @@ const CreateActivityModal = ({ onClose, onSave }) => {
       setError("El título y la descripción son obligatorios.");
       return;
     }
+    if (!formData.type) {
+      setError("Debes seleccionar un tipo de actividad.");
+      return;
+    }
     if (!formData.file) {
       setError("El archivo es obligatorio.");
       return;
@@ -71,137 +88,176 @@ const CreateActivityModal = ({ onClose, onSave }) => {
     onSave(formData);
   };
 
-  const getFileIcon = (fileType) => {
-    if (fileType === "application/pdf") {
-      return faFilePdf;
-    } else if (
-      fileType === "application/msword" ||
-      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      return faFileWord;
-    } else {
-      return faFile;
+  const getFileIcon = () => {
+    switch(formData.type) {
+      case "Documento":
+        return formData.file?.type === "application/pdf" ? faFilePdf : faFileWord;
+      case "Video":
+        return faVideo;
+      case "Tarea":
+        return faFile;
+      default:
+        return faFile;
+    }
+  };
+
+  const getUploadLabel = () => {
+    switch(formData.type) {
+      case "Documento":
+        return "Subir documento (PDF o Word)";
+      case "Video":
+        return "Subir video (MP4, AVI, MOV, WebM)";
+      case "Tarea":
+        return "Subir archivo de la tarea (PDF o TXT)";
+      default:
+        return "Selecciona un tipo de actividad primero";
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-md bg-black/30">
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40">
       <motion.div
-        className="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg relative"
-        initial={{ opacity: 0, scale: 0.9 }}
+        className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-xl relative max-h-[90vh] overflow-y-auto"
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, type: "spring" }}
       >
-        {/* Botón Cerrar */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition"
+          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
         >
           <FontAwesomeIcon icon={faTimes} size="lg" />
         </button>
 
-        {/* Título */}
-        <h2 className="text-3xl font-bold text-gray-800 text-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
           Crear Nueva Actividad
         </h2>
 
-        {/* Mensaje de error */}
         {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-md flex items-center gap-2 mb-4">
-            <FontAwesomeIcon icon={faExclamationTriangle} />
-            {error}
+          <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 mb-6">
+            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Formulario */}
         <div className="space-y-6">
+          {/* Tipo de Actividad */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Tipo de Actividad
+            </label>
+            <div className="relative">
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
+              >
+                <option value="">Seleccionar tipo...</option>
+                <option value="Tarea">Tarea</option>
+                <option value="Video">Video</option>
+                <option value="Documento">Documento</option>
+              </select>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
           {/* Título */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1">
-              Título de la actividad:
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Título
             </label>
             <input
               type="text"
               name="title"
-              placeholder="Ejemplo: Introducción a HTML"
               value={formData.title}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: Introducción a React"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Descripción */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1">
-              Descripción o instrucciones:
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Descripción
             </label>
             <textarea
               name="content"
-              placeholder="Ejemplo: Lee el documento adjunto y responde las preguntas en clase."
               value={formData.content}
               onChange={handleChange}
               rows="3"
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              placeholder="Describe los objetivos y requisitos de la actividad..."
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
 
           {/* Subir Archivo */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1">
-              Archivo (PDF o Word):
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {getUploadLabel()}
             </label>
-            <div className="flex items-center gap-3">
-              <label
-                className="flex-1 flex flex-col items-center justify-center 
-                border-2 border-dashed border-gray-300 rounded-lg p-6 
-                hover:border-blue-500 transition-colors cursor-pointer"
-              >
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <FontAwesomeIcon
-                  icon={formData.file ? getFileIcon(formData.file.type) : faFile}
-                  className={`text-xl mb-2 ${
-                    formData.file
-                      ? formData.file.type === "application/pdf"
-                        ? "text-red-500"
-                        : "text-blue-500"
-                      : "text-gray-400"
-                  }`}
-                />
-                <p className="text-sm text-center">
-                  {formData.file
-                    ? formData.file.name
-                    : "Haz click o arrastra tu archivo"}
-                </p>
-              </label>
-            </div>
+            <label className="group relative cursor-pointer">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="hidden"
+                accept={
+                  formData.type === "Documento" ? ".pdf,.doc,.docx" :
+                  formData.type === "Video" ? "video/*" :
+                  formData.type === "Tarea" ? ".pdf,.txt" : ""
+                }
+                disabled={!formData.type}
+              />
+              <div className={`border-2 border-dashed border-gray-200 rounded-xl p-6 transition-all 
+                ${formData.file ? "border-blue-500 bg-blue-50" : "group-hover:border-blue-300"}`}>
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <FontAwesomeIcon
+                      icon={getFileIcon()}
+                      className={`text-xl ${
+                        formData.file ? "text-blue-600" : "text-gray-400"
+                      }`}
+                    />
+                  </div>
+                  <p className="text-center text-sm text-gray-500">
+                    {formData.file ? (
+                      <span className="text-blue-600 font-medium">{formData.file.name}</span>
+                    ) : (
+                      "Haz click o arrastra tu archivo"
+                    )}
+                  </p>
+                </div>
+              </div>
+            </label>
           </div>
 
-          {/* Fecha límite */}
+          {/* Fecha Límite */}
           <div>
-            <label className="block text-gray-700 font-semibold mb-1">
-              Fecha límite (opcional):
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Fecha Límite (Opcional)
             </label>
             <input
               type="date"
               name="deadline"
               value={formData.deadline}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         {/* Botones */}
-        <div className="mt-6 flex justify-end gap-4">
+        <div className="mt-8 flex justify-end gap-3">
           <motion.button
             onClick={onClose}
             whileHover={{ scale: 1.05 }}
-            className="px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition"
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
           >
             Cancelar
           </motion.button>
@@ -209,10 +265,10 @@ const CreateActivityModal = ({ onClose, onSave }) => {
             onClick={handleSubmit}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            <FontAwesomeIcon icon={faSave} className="mr-2" />
-            Guardar
+            <FontAwesomeIcon icon={faSave} />
+            Crear Actividad
           </motion.button>
         </div>
       </motion.div>
