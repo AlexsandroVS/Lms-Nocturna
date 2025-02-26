@@ -21,7 +21,8 @@ const ActivityPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showActivityDetailsModal, setShowActivityDetailsModal] = useState(false);
+  const [showActivityDetailsModal, setShowActivityDetailsModal] =
+    useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
 
   // Cargar módulo y actividades
@@ -31,18 +32,22 @@ const ActivityPage = () => {
       setLoading(false);
       return;
     }
-  
+
     const fetchModuleAndActivities = async () => {
       try {
         setLoading(true);
         setError(null);
-  
+
         // Solicitar los datos del módulo
-        const moduleResp = await api.get(`/courses/${courseId}/modules/${moduleId}`);
-  
+        const moduleResp = await api.get(
+          `/courses/${courseId}/modules/${moduleId}`
+        );
+
         // Solicitar las actividades del módulo
-        const activitiesResp = await api.get(`/courses/${courseId}/modules/${moduleId}/activities`);
-  
+        const activitiesResp = await api.get(
+          `/courses/${courseId}/modules/${moduleId}/activities`
+        );
+
         // Actualizar estado con los datos obtenidos
         setModule(moduleResp.data);
         setActivities(activitiesResp.data); // activitiesResp.data será [] si no hay actividades
@@ -53,9 +58,10 @@ const ActivityPage = () => {
         setLoading(false);
       }
     };
-  
+
     fetchModuleAndActivities();
   }, [api, courseId, moduleId]);
+
   // Crear actividad
   const handleCreateActivity = async (newActivity) => {
     const formData = new FormData();
@@ -64,51 +70,62 @@ const ActivityPage = () => {
     formData.append("type", newActivity.type);
     formData.append("file", newActivity.file); // Asegúrate de que el archivo está siendo añadido
     formData.append("deadline", newActivity.deadline);
-  
+
     // Verificar los datos antes de enviarlos
     console.log("Datos a enviar:", formData);
-  
+
     try {
       const response = await api.post(
         `/courses/${courseId}/modules/${moduleId}/activities`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-  
+
       console.log("Respuesta del backend:", response.data); // Verificar la respuesta
-  
+
       if (response.data.activity) {
+        // Actualizar las actividades con la respuesta después de crearla
         setActivities((prevActivities) => [
           ...prevActivities,
           response.data.activity,
         ]);
         setShowCreateModal(false);
+
+        // Hacer un llamado adicional para obtener las actividades actualizadas
+        const activitiesResp = await api.get(
+          `/courses/${courseId}/modules/${moduleId}/activities`
+        );
+        setActivities(activitiesResp.data);
       }
     } catch (error) {
-      console.error("❌ Error al crear la actividad:", error.response?.data || error);
+      console.error(
+        "❌ Error al crear la actividad:",
+        error.response?.data || error
+      );
     }
   };
-  
-  // Editar actividad
+
   const handleEditActivity = async (updatedActivity) => {
     try {
-      await api.put(
+      // Enviar la actualización al servidor
+      const response = await api.put(
         `/activities/${updatedActivity.ActivityID}`,
         updatedActivity
       );
-
-      // Actualizar la actividad en la lista
-      setActivities(
-        activities.map((act) =>
-          act.ActivityID === updatedActivity.ActivityID ? updatedActivity : act
-        )
-      );
-      setShowEditModal(false);
+  
+      if (response.data.message === "Actividad actualizada correctamente.") {
+        // Recargar la página para obtener los datos actualizados
+        alert("Actividad actualizada correctamente.");
+        window.location.reload(); // Forzar la recarga de la página
+      }
     } catch (error) {
       console.error("❌ Error al actualizar la actividad:", error);
+      alert("Hubo un error al actualizar la actividad.");
     }
   };
-
+  
+  
+  
   // Eliminar actividad
   const handleDeleteActivity = async (activityId) => {
     try {
@@ -157,7 +174,9 @@ const ActivityPage = () => {
         </motion.button>
       )}
 
-      <h2 className="text-2xl font-semibold text-gray-700 mb-4">Actividades:</h2>
+      <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+        Actividades:
+      </h2>
 
       {activities.length === 0 ? (
         <div className="p-6 bg-white shadow-xl rounded-lg text-center">

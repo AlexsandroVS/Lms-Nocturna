@@ -23,38 +23,22 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
   });
   const [files, setFiles] = useState([]);
   const [newFile, setNewFile] = useState(null);
-  const [users, setUsers] = useState([]);
   const { courseId, moduleId } = useParams();
 
   useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const response = await api.get(
+          `/activities/${activity.ActivityID}/files`
+        );
+        setFiles(response.data); // Establecer archivos existentes
+      } catch (error) {
+        console.error("Error al obtener los archivos:", error);
+      }
+    };
+
     if (activity) {
-      const fetchFilesAndUsers = async () => {
-        try {
-          // Obtener todos los usuarios
-          const usersResp = await api.get("/users");
-
-          // Filtrar usuarios para obtener solo los administradores
-          const admins = usersResp.data.filter((user) => user.Role === "admin");
-          const adminUserIds = admins.map((admin) => admin.UserID); // Obtener los UserID de los admins
-
-          // Obtener los archivos para la actividad
-          const filesResp = await api.get(
-            `/activities/${activity.ActivityID}/files`
-          );
-
-          // Filtrar los archivos para que solo se muestren los subidos por administradores
-          const adminFiles = filesResp.data.filter((file) =>
-            adminUserIds.includes(file.UserID)
-          );
-
-          setUsers(usersResp.data); // Establecer la lista de usuarios
-          setFiles(adminFiles); // Establecer los archivos subidos por administradores
-        } catch (error) {
-          console.error("Error al obtener los archivos y usuarios:", error);
-        }
-      };
-
-      fetchFilesAndUsers();
+      fetchFiles();
 
       setFormData({
         title: activity.Title || "",
@@ -63,31 +47,49 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
         deadline: activity.Deadline ? activity.Deadline.split("T")[0] : "",
       });
     }
-  }, [activity]);
+  }, [activity, api]); // Se ejecuta al cambiar la actividad o la API
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const updatedActivity = {
-      ...activity,
-      Title: formData.title,
-      Content: formData.description.trim() || null,
-      Type: formData.type,
-      Deadline: formData.deadline || null,
+      ActivityID: activity.ActivityID,
+      title: formData.title.trim() || undefined,
+      content: formData.description.trim() || undefined,
+      type: formData.type || undefined,
+      deadline: formData.deadline || undefined,
     };
-    onUpdate(updatedActivity);
+    
+    try {
+      const response = await api.put(
+        `/activities/${updatedActivity.ActivityID}`,
+        updatedActivity
+      );
+      window.location.reload(); // Forzar la recarga de la página
+      if (response.data.message === "Actividad actualizada correctamente.") {
+        onUpdate(updatedActivity); // Llama a onUpdate si la actualización es exitosa
+        alert("Actividad actualizada correctamente.");
+  
+        // Cerrar el modal después de la actualización exitosa
+        onClose();
+       
+      }
+    } catch (error) {
+      console.error("❌ Error al actualizar la actividad:", error.response?.data || error);
+      alert("Hubo un error al actualizar la actividad.");
+    }
   };
-
+  
   const handleDeleteFile = async (fileId) => {
     try {
       // Eliminar el archivo del estado local inmediatamente
       const updatedFiles = files.filter((file) => file.FileID !== fileId);
       setFiles(updatedFiles);
-  
-      // Ahora eliminamos el archivo en el servidor
+
+      // Eliminar el archivo en el servidor
       await api.delete(`/files/${fileId}`);
       alert("Archivo eliminado correctamente");
     } catch (error) {
@@ -95,7 +97,6 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
       alert("Hubo un error al eliminar el archivo. Inténtalo de nuevo.");
     }
   };
-  
 
   const handleFileChange = (e) => {
     setNewFile(e.target.files[0]);
@@ -106,31 +107,37 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
       alert("Por favor selecciona un archivo.");
       return;
     }
-  
+
     const formData = new FormData();
     formData.append("file", newFile);
     formData.append("courseId", courseId);
-  
+
     try {
       const response = await api.post(
         `/courses/${courseId}/modules/${moduleId}/activities/${activity.ActivityID}/files`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-  
-      // Aquí actualizamos el estado de los archivos con el nuevo archivo subido
+
+      // Actualizar los archivos del estado con el nuevo archivo subido
       setFiles((prevFiles) => [...prevFiles, response.data]);
-  
+
       // Limpiar el archivo seleccionado después de la subida
       setNewFile(null);
-  
+
       alert("Archivo subido con éxito");
+
+      // Llamar a la API nuevamente para obtener los archivos actualizados después de la subida
+      const updatedFilesResponse = await api.get(
+        `/activities/${activity.ActivityID}/files`
+      );
+      setFiles(updatedFilesResponse.data); // Establecer los archivos actualizados
     } catch (error) {
       console.error("Error al subir el archivo:", error);
       alert("Hubo un error al subir el archivo. Inténtalo de nuevo.");
     }
   };
-  
+
   // Obtener el ícono correspondiente al tipo de archivo
   const getFileIcon = (fileType) => {
     if (fileType === "application/pdf") {
@@ -226,34 +233,25 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
               Archivos asociados (admin):
             </label>
             <div className="space-y-2">
-              {files.length === 0 ? (
-                <div className="text-gray-500">
-                  No hay archivos subidos por administradores.
+              {files.map((file) => (
+                <div
+                  key={file.FileID}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <span className="text-gray-700 truncate">
+                    {file.FileName}
+                  </span>
+                  {currentUser.role === "admin" && (
+                    <button
+                      onClick={() => handleDeleteFile(file.FileID)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                      Eliminar
+                    </button>
+                  )}
                 </div>
-              ) : (
-                files.map((file) => (
-                  <div
-                    key={file.FileID}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <span className="text-gray-700 truncate">
-                      {file.FileName}
-                    </span>
-                    <FontAwesomeIcon
-                      icon={getFileIcon(file.FileType)}
-                      className="text-2xl"
-                    />
-                    {currentUser.role === "admin" && (
-                      <button
-                        onClick={() => handleDeleteFile(file.FileID)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    )}
-                  </div>
-                ))
-              )}
+              ))}
             </div>
           </div>
 
