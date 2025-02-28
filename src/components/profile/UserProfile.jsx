@@ -1,13 +1,12 @@
-// src/components/UserProfile/UserProfile.jsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faSave } from "@fortawesome/free-solid-svg-icons";
+import { faEdit, faBookOpen, faClock, faUser, faGraduationCap, faTrophy } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext";
 import StatCard from "./StatCard";
 import CourseProgressCard from "./CourseProgressCard";
 import AchievementCard from "./ArchivementCard";
-import defaultAvatar from "../../assets/admin-avatar.jpg";
+import defaultAvatar from "../../../public/img/admin-avatar.jpg";
 import { profileVariants, itemVariants, colorPalette } from "../../utils/profileUtils";
 
 const SERVER_URL = "http://localhost:5000";
@@ -21,7 +20,7 @@ const getAvatarUrl = (avatar) => {
 const UserProfile = () => {
   const { currentUser, setCurrentUser, api } = useAuth();
   const fileInputRef = useRef(null);
-  
+
   // Estado local para el formulario de edición
   const [formData, setFormData] = useState({
     name: currentUser?.name || "",
@@ -31,6 +30,9 @@ const UserProfile = () => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [courses, setCourses] = useState([]);  // Nuevo estado para cursos
+  const [averageProgress, setAverageProgress] = useState(0); // Nuevo estado para el promedio de progreso
+  const [totalStudyHours, setTotalStudyHours] = useState(0); // Nuevo estado para las horas totales de estudio
 
   // Sincroniza el formulario con currentUser cuando éste cambia
   useEffect(() => {
@@ -41,7 +43,42 @@ const UserProfile = () => {
         avatar: getAvatarUrl(currentUser.avatar),
       });
     }
-  }, [currentUser]);
+
+    // Obtener todos los cursos de la API
+    const fetchCourses = async () => {
+      try {
+        const response = await api.get("/courses");  // Obtener todos los cursos
+        setCourses(response.data);  // Guardar los cursos en el estado
+
+        // Calcular el promedio de progreso de cada curso y las horas de estudio
+        let totalProgress = 0;
+        let courseCount = 0;
+        let totalDurationHours = 0;
+        
+        for (const course of response.data) {
+          const courseAverageResponse = await api.get(
+            `/grades/user/${currentUser.id}/course/${course.id}/averages`
+          );
+          const courseAverage = courseAverageResponse.data.data.courseAverage * 5; // Convertir la nota a porcentaje
+          totalProgress += courseAverage;
+          totalDurationHours += course.durationHours; // Sumar las horas de estudio
+          courseCount++;
+        }
+
+        // Calcular el promedio general de progreso
+        const average = totalProgress / courseCount;
+        setAverageProgress(average.toFixed()); 
+
+        // Establecer el total de horas de estudio
+        setTotalStudyHours(totalDurationHours);
+
+      } catch (err) {
+        console.error("Error al obtener los cursos:", err);
+      }
+    };
+
+    fetchCourses();  // Llamada para obtener cursos
+  }, [currentUser, api]);
 
   // Manejador para cambios en inputs de texto
   const handleChange = (e) => {
@@ -78,6 +115,7 @@ const UserProfile = () => {
       });
       const updatedUser = response.data.user;
       updatedUser.avatar = getAvatarUrl(updatedUser.avatar);
+
       // Actualiza el estado global y local sin perder datos
       setCurrentUser(prev => ({ ...prev, ...updatedUser }));
       setFormData({
@@ -86,6 +124,10 @@ const UserProfile = () => {
         avatar: updatedUser.avatar,
       });
       setEditing(false);
+
+      // Recargar la página para asegurar que se vean los cambios
+      window.location.reload(); // Recarga la página
+
     } catch (err) {
       setError("Error al actualizar perfil");
       console.error("Error en handleSave:", err);
@@ -94,10 +136,6 @@ const UserProfile = () => {
     }
   };
 
-  // Suponiendo que el objeto currentUser contiene estadísticas, cursos y logros
-  const userCourses = currentUser.courses || [];
-  const userAchievements = currentUser.achievements || [];
-  
   return (
     <motion.div
       variants={profileVariants}
@@ -182,28 +220,22 @@ const UserProfile = () => {
         className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
       >
         <StatCard
-          icon="user"
+          icon={faUser}
           title="Progreso General"
-          value={`${currentUser.stats?.progress || 0}%`}
+          value={`${averageProgress}%`} 
           color={colorPalette.primary}
         />
         <StatCard
-          icon="graduation-cap"
+          icon={faGraduationCap}
           title="Cursos Completados"
           value={currentUser.stats?.completedCourses || 0}
           color={colorPalette.neutral}
         />
         <StatCard
-          icon="clock"
+          icon={faClock}
           title="Horas de Estudio"
-          value={currentUser.stats?.learningHours || 0}
+          value={totalStudyHours || 0}
           color={colorPalette.secondary}
-        />
-        <StatCard
-          icon="trophy"
-          title="Logros Obtenidos"
-          value={currentUser.achievements?.length || 0}
-          color={colorPalette.accent}
         />
       </motion.div>
 
@@ -219,16 +251,16 @@ const UserProfile = () => {
             style={{ color: colorPalette.primary }}
           >
             <FontAwesomeIcon
-              icon="book-open"
+              icon={faBookOpen}
               className="text-3xl transition-transform hover:scale-110"
             />
             Cursos en Progreso
             <span className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-full">
-              {userCourses.length} activos
+              {courses.length} activos
             </span>
           </h2>
           <div className="space-y-4">
-            {userCourses.map((course, index) => (
+            {courses.map((course, index) => (
               <CourseProgressCard
                 key={course.id}
                 course={course}
@@ -239,34 +271,7 @@ const UserProfile = () => {
           </div>
         </motion.div>
         {/* Últimos Logros */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-2xl shadow-xl p-6 border-t-4"
-        >
-          <h2
-            className="text-2xl font-bold mb-6 flex items-center gap-3"
-            style={{ color: colorPalette.accent }}
-          >
-            <FontAwesomeIcon
-              icon="trophy"
-              className="text-3xl transition-transform hover:scale-110"
-            />
-            Últimos Logros
-            <span className="text-sm bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
-              {currentUser.achievements?.length || 0} obtenidos
-            </span>
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            {currentUser.achievements?.map((achievement, index) => (
-              <AchievementCard
-                key={achievement.id}
-                achievement={achievement}
-                index={index}
-                accentColor={colorPalette.accent}
-              />
-            ))}
-          </div>
-        </motion.div>
+        
       </div>
     </motion.div>
   );

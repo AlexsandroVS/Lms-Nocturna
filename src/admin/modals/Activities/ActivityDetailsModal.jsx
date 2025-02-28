@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -5,6 +6,7 @@ import {
   faUpload,
   faTimes,
   faFile,
+  faArrowRight,
   faDownload,
   faSpinner,
   faClock,
@@ -195,18 +197,47 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
     if (fileType.startsWith("video/")) return "bg-purple-500";
     return "bg-gray-500";
   };
-  
+
   const getFileTypeLabel = (fileType) => {
     const typeMap = {
       "application/pdf": "PDF Document",
       "application/msword": "Word Document",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word Document",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        "Word Document",
       "video/mp4": "MP4 Video",
-      "video/webm": "WebM Video"
+      "video/webm": "WebM Video",
     };
     return typeMap[fileType] || "File";
   };
+  const getActivityStatus = () => {
+    // Verificar si existe deadline y tiene formato correcto
+    if (!activity?.Deadline || typeof activity.Deadline !== 'string') return null;
   
+    try {
+      // Dividir la fecha y eliminar posibles componentes de tiempo
+      const [datePart] = activity.Deadline.split('T'); // Para manejar formato ISO
+      const [year, month, day] = datePart.split('-');
+      
+      const now = new Date();
+      const currentDate = Date.UTC(
+        now.getUTCFullYear(), 
+        now.getUTCMonth(), 
+        now.getUTCDate()
+      );
+      
+      const deadlineDate = Date.UTC(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1, // Meses son 0-based
+        parseInt(day, 10)
+      );
+  
+      return currentDate > deadlineDate ? 'Vencido' : 'En curso';
+    } catch (error) {
+      console.error('Error al procesar la fecha límite:', error);
+      return null;
+    }
+  };
+  const status = getActivityStatus();
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40">
       <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-3xl mx-4 relative max-h-[90vh] overflow-hidden flex flex-col">
@@ -216,10 +247,26 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
         >
           <FontAwesomeIcon icon={faTimes} size="lg" />
         </button>
-  
+
         <div className="overflow-y-auto flex-1 pr-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">{activity.Title}</h2>
-  
+          <h2 className="text-2xl font-bold text-gray-900">{activity.Title}</h2>
+        
+          {status && (
+            <div
+              className={`flex items-center gap-2 px-3 py-1 rounded-full ${
+                status === "Vencido"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-green-100 text-green-800"
+              }`}
+            >
+              <FontAwesomeIcon
+                icon={status === "Vencido" ? faClock : faCheckCircle}
+                className="text-sm"
+              />
+              <span className="text-sm font-medium">{status}</span>
+            </div>
+          )}
+
           <div className="space-y-6">
             <div className="bg-gray-50 p-4 rounded-xl">
               <label className="block text-sm font-semibold text-gray-500 mb-2">
@@ -229,14 +276,23 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
                 {activity.Content || "Esta actividad no tiene descripción."}
               </p>
             </div>
-  
+
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">
                   Material de apoyo
                 </h3>
+                {currentUser?.role === "admin" && (
+    <button
+      onClick={() => navigate(`/files/${activity.ActivityID}`)}
+      className="flex items-center gap-2 text-green-600 hover:text-green-700 text-sm"
+    >
+      Gestionar archivos
+      <FontAwesomeIcon icon={faArrowRight} size="xs" />
+    </button>
+  )}
               </div>
-              
+
               {adminFiles.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {adminFiles.map((file) => (
@@ -256,14 +312,14 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
             </div>
           </div>
         </div>
-  
+
         {currentUser?.role !== "admin" && (
           <div className="border-t pt-6 mt-6">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">
                 Subir entrega
               </h3>
-  
+
               <div className="flex flex-col gap-3">
                 <label className="group relative cursor-pointer">
                   <input
@@ -293,13 +349,13 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
                     </div>
                   </div>
                 </label>
-  
+
                 {uploadError && (
                   <div className="bg-red-50 p-3 rounded-lg">
                     <p className="text-red-600 text-sm">{uploadError}</p>
                   </div>
                 )}
-  
+
                 <button
                   onClick={handleFileUpload}
                   disabled={loading.upload || !file}
@@ -324,6 +380,6 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
       </div>
     </div>
   );
-}
+};
 
 export default ActivityDetailsModal;

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext"; // Importamos useAuth
+import { useAuth } from "../context/AuthContext";
 import CourseHeader from "../components/courses/CourseHeader";
 import ModuleList from "../components/module/ModuleList";
 import ProgressSidebar from "../components/courses/ProgressSidebar";
@@ -13,34 +13,54 @@ import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
 
 const CoursePage = () => {
-  const { api, currentUser } = useAuth(); // Accedemos al currentUser de useAuth
+  const { api, currentUser } = useAuth();
   const { id } = useParams();
 
-  // Estados para curso, módulos y modales
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
   const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
   const [showEditModuleModal, setShowEditModuleModal] = useState(false);
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
+  const [averages, setAverages] = useState(null);
 
-  // Función reutilizable para cargar módulos
+  // Función para obtener los promedios
+  const fetchAverages = useCallback(async () => {
+    try {
+      const userId = currentUser?.id;
+      if (!userId) return;
+      const response = await api.get(`/grades/user/${userId}/course/${id}/averages`);
+      setAverages(response.data.data); // Guardar solo la data del response
+    } catch (err) {
+      console.error("Error al obtener los promedios:", err);
+    }
+  }, [api, currentUser?.id, id]);
+
+  // Función para cargar módulos
   const fetchModules = useCallback(async () => {
     try {
       const modulesResp = await api.get(`/courses/${id}/modules`);
-      setModules(
-        modulesResp.data?.map((m) => ({
-          ...m,
-          activities: m.activities || [],
-        })) || []
-      );
+      const modulesWithActivities = modulesResp.data?.map((module) => ({
+        ...module,
+        totalActivities: module.activities ? module.activities.length : 0, // Añadir el total de actividades
+      }));
+
+      console.log(currentUser.role)
+      // Filtrar módulos según el rol del usuario
+      if (currentUser?.role !== "admin") {
+        // Filtrar solo los módulos no bloqueados si no es admin
+        setModules(modulesWithActivities.filter(module => module.isLocked === 0));
+      } else {
+        // Los administradores ven todos los módulos
+        setModules(modulesWithActivities);
+      }
     } catch (err) {
       console.error("Error al cargar módulos:", err);
-      setModules([]); // Resetear a array vacío
+      setModules([]);
     }
-  }, [api, id]);
+  }, [api, id, currentUser.role]);
 
-  // Cargar datos del curso y módulos al montar
+  // Cargar datos del curso, módulos y promedios al montar
   useEffect(() => {
     const controller = new AbortController();
 
@@ -50,13 +70,9 @@ const CoursePage = () => {
           api.get(`/courses/${id}`, { signal: controller.signal }),
           api.get(`/courses/${id}/modules`, { signal: controller.signal }),
         ]);
-        
-        // Depuración: Verifica los datos del curso
-        console.log("Course data:", courseResp.data);
-        console.log("Modules data:", modulesResp.data);
-
         setCourse(courseResp.data);
-        setModules(modulesResp.data);
+        fetchModules(); // Filtrar módulos según el rol del usuario
+        fetchAverages(); // Obtener promedios
       } catch (err) {
         if (!controller.signal.aborted) {
           console.error("Error al cargar curso o módulos:", err);
@@ -66,14 +82,20 @@ const CoursePage = () => {
 
     fetchData();
     return () => controller.abort();
-  }, [id, api]);
+  }, [id, api, fetchModules, fetchAverages]);
+
+  // Función para convertir la calificación a porcentaje
+  const convertToPercentage = (score) => {
+    if (score === "N/A") return score;
+    return ((score / 20) * 100).toFixed(0);
+  };
 
   // Crear nuevo módulo
   const handleCreateModule = useCallback(
     async (moduleData) => {
       try {
         await api.post(`/courses/${id}/modules`, moduleData);
-        await fetchModules(); // Actualizar la lista después de crear
+        await fetchModules();
         setShowCreateModuleModal(false);
       } catch (err) {
         console.error("Error al crear módulo:", err);
@@ -88,10 +110,7 @@ const CoursePage = () => {
       if (!selectedModule?.ModuleID) return;
 
       try {
-        await api.put(
-          `/courses/${id}/modules/${selectedModule.ModuleID}`,
-          moduleData
-        );
+        await api.put(`/courses/${id}/modules/${selectedModule.ModuleID}`, moduleData);
         await fetchModules();
         setShowEditModuleModal(false);
       } catch (err) {
@@ -100,7 +119,11 @@ const CoursePage = () => {
     },
     [api, id, selectedModule, fetchModules]
   );
-
+  const handleLockModule = useCallback((moduleId, newStatus) => {
+    setModules(prev => prev.map(module => 
+      module.ModuleID === moduleId ? { ...module, isLocked: newStatus } : module
+    ));
+  }, []);
   // Eliminar módulo
   const handleDeleteModule = useCallback(
     async (moduleId) => {
@@ -117,43 +140,20 @@ const CoursePage = () => {
     [api, id, fetchModules]
   );
 
-  // Memoizar cálculos de progreso
   const courseWithProgress = useMemo(() => {
     return course ? calculateCourseProgress({ ...course, modules }) : null;
   }, [course, modules]);
 
-  // Solo extraer el color del curso
   const courseColor = courseWithProgress?.color;
 
-  // Memoizar componentes hijos
-  const MemoizedModuleList = useMemo(() => {
-    return (
-      <ModuleList
-        modules={modules}
-        color={courseColor}  // Solo pasa el color
-        onEditModule={(module) => {
-          setSelectedModule(module);
-          setShowEditModuleModal(true);
-        }}
-        onDeleteModule={(moduleId) => {
-          setSelectedModule(modules.find((m) => m.ModuleID === moduleId));
-          setShowDeleteModuleModal(true);
-        }}
-      />
-    );
-  }, [modules, courseColor]);
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto p-8"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto p-8">
       {courseWithProgress && (
         <CourseHeader
           course={courseWithProgress}
-          color={courseColor}  // Solo pasa el color
+          color={courseColor}
           title={course.title}
+          courseAverage={convertToPercentage(averages?.courseAverage)}
         />
       )}
 
@@ -177,23 +177,29 @@ const CoursePage = () => {
             animate={{ y: 0, opacity: 1 }}
             className="text-2xl font-bold mb-6 flex items-center"
           >
-            {courseWithProgress && (
-              <FontAwesomeIcon
-                icon={courseWithProgress.icon}
-                className="mr-3 text-3xl transition-transform hover:scale-110"
-                style={{ color: courseColor }}  // Aplica el color
-              />
-            )}
             Módulos del Curso
           </motion.h2>
 
-          {MemoizedModuleList}
+          <ModuleList
+            modules={modules}
+            color={courseColor}
+            onLockModule={handleLockModule}
+            onEditModule={(module) => {
+              setSelectedModule(module);
+              setShowEditModuleModal(true);
+            }}
+            onDeleteModule={(moduleId) => {
+              setSelectedModule(modules.find((m) => m.ModuleID === moduleId));
+              setShowDeleteModuleModal(true);
+            }}
+          />
         </div>
 
         {courseWithProgress && (
           <ProgressSidebar
             course={courseWithProgress}
-            color={courseColor}  // Solo pasa el color
+            color={courseColor}
+            courseAverage={convertToPercentage(averages?.courseAverage)}
           />
         )}
       </div>

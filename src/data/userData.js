@@ -1,5 +1,5 @@
 import Avatar from "../assets/avatar.jpg";
-import AdminAvatar from "../assets/admin-avatar.jpg";
+import AdminAvatar from "../../public/img//admin-avatar.jpg";
 
 export const users = [
   {

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTasks } from '@fortawesome/free-solid-svg-icons';
 
-const ProgressSidebar = ({ course, color }) => {
+const ProgressSidebar = ({ course, color, courseAverage }) => {
   return (
     <div className="space-y-6">
       <motion.div
@@ -23,14 +23,14 @@ const ProgressSidebar = ({ course, color }) => {
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${course.progress}%` }}
+              animate={{ width: `${courseAverage}%` }} // Usamos el promedio en vez de progress
               className="h-3 rounded-full transition-all duration-1000 ease-out"
               style={{ backgroundColor: color }}
             />
           </div>
           <div className="flex justify-between text-gray-600">
             <span>Completado</span>
-            <span>{course.progress}%</span>
+            <span>{courseAverage}%</span> {/* Mostrar el promedio como porcentaje */}
           </div>
         </div>
       </motion.div>

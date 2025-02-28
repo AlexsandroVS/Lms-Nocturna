@@ -11,7 +11,7 @@ import CreateUsersModal from "../modals/CreateUsersModal";
 import DeleteUsersModal from "../modals/DeleteUsersModal";
 
 // Importar el avatar por defecto
-import defaultAvatar from "../../assets/admin-avatar.jpg";
+import defaultAvatar from "../../../public/img/admin-avatar.jpg";
 
 // Definir SERVER_URL y la función getAvatarUrl
 const SERVER_URL = "http://localhost:5000";

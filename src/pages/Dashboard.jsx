@@ -1,6 +1,6 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
-import courses from "../data/courses";
 import Header from "../components/layout/Header";
 import AcademicProgress from "../components/dashboard/AcademicProgress";
 import ContinueCourse from "../components/dashboard/ContinueCourse";
@@ -9,7 +9,8 @@ import FeaturedResource from "../components/dashboard/FeaturedResource";
 import AdminDashboard from "../admin/AdminDashboard";
 
 export default function Dashboard() {
-  const { currentUser, isAdmin, loading } = useAuth(); // Agregamos `loading` para manejar la carga
+  const { currentUser, isAdmin, loading, api } = useAuth(); // Agregamos `loading` para manejar la carga
+  const [courses, setCourses] = useState([]);
 
   // Función para obtener un saludo dinámico
   const getGreeting = () => {
@@ -18,6 +19,22 @@ export default function Dashboard() {
     if (hour < 18) return "¡Buenas tardes";
     return "¡Buenas noches";
   };
+
+  // 📌 Hacer el GET para obtener los cursos
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get(`/courses`);
+      setCourses(response.data); // Guardar los cursos con su promedio
+    } catch (err) {
+      console.error("Error al obtener cursos:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchCourses(); // Fetch cuando el usuario esté disponible
+    }
+  }, [currentUser, api]);
 
   // Componente de bienvenida
   function WelcomeCard() {
@@ -66,16 +83,12 @@ export default function Dashboard() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <WelcomeCard />
-            <AcademicProgress
-              courses={courses.map(({ title, progress, color }) => ({
-                name: title,
-                progress,
-                color,
-              }))}
-            />
+            <AcademicProgress courses={courses} /> {/* Pasamos los cursos aquí */}
           </div>
 
-          <ContinueCourse />
+          <ContinueCourse
+          
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <CriticalDeadlines />

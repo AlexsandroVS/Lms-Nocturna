@@ -1,44 +1,56 @@
-// components/admin/AdminStats.jsx
 import { motion, useAnimation } from "framer-motion";
-import { useEffect } from "react";
-import { users } from "../data/userData";
-import courses from "../data/courses";
+import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext"; // Usamos la API proporcionada por el contexto
 import { containerVariants, itemVariants } from "../utils/animationUtils";
+
 export default function AdminStats() {
   const controls = useAnimation();
+  const { api } = useAuth(); // Accedemos a la API de autenticación
+  const [activeUsers, setActiveUsers] = useState(0); // Para almacenar el número de usuarios activos
+  const [totalCourses, setTotalCourses] = useState(0); // Para almacenar el número total de cursos
 
-  // Contar usuarios activos
-  const activeUsers = users.filter((user) => user.isActive).length;
-  const totalCourses = courses.length;
-  // Métricas estáticas (puedes personalizarlas)
+  // Función para obtener los usuarios activos
+  const fetchActiveUsers = async () => {
+    try {
+      const response = await api.get("/users");
+      const activeUsersCount = response.data.filter(user => user.IsActive === 1).length; // Filtrar los usuarios activos
+      setActiveUsers(activeUsersCount);
+    } catch (err) {
+      console.error("Error al obtener los usuarios:", err);
+    }
+  };
+
+  // Función para obtener los cursos
+  const fetchCourses = async () => {
+    try {
+      const response = await api.get("/courses"); // Llamado para obtener todos los cursos
+      setTotalCourses(response.data.length); // Asignamos el número total de cursos
+    } catch (err) {
+      console.error("Error al obtener los cursos:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveUsers(); // Obtener usuarios activos
+    fetchCourses(); // Obtener cursos
+    controls.start("visible");
+  }, [controls]);
+
+  // Métricas con los valores obtenidos
   const metrics = [
     {
       title: "Usuarios Activos",
       value: activeUsers,
-      change: "+10%",
       icon: "👥",
       color: "bg-white",
     },
     {
       title: "Cursos Publicados",
       value: totalCourses,
-      change: "+12%",
       icon: "📚",
       color: "bg-white",
     },
-    {
-      title: "Ingresos Mensuales",
-      value: "$2,450",
-      change: "+8%",
-      icon: "💰",
-      color: "bg-white",
-    },
   ];
-
-  // Animación de entrada
-  useEffect(() => {
-    controls.start("visible");
-  }, [controls]);
 
   return (
     <motion.div
@@ -62,15 +74,6 @@ export default function AdminStats() {
                 <p className="text-3xl font-bold text-gray-800">
                   {metric.value}
                 </p>
-                <span
-                  className={`ml-2 text-sm font-semibold ${
-                    metric.change.startsWith("+")
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {metric.change}
-                </span>
               </div>
             </div>
             <div className="text-3xl">{metric.icon}</div>
@@ -81,7 +84,7 @@ export default function AdminStats() {
             <div className="w-full bg-gray-200 rounded-full h-2">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: "75%" }} // Puedes hacerlo dinámico
+                animate={{ width: "75%" }} 
                 transition={{ duration: 1, delay: 0.5 }}
                 className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
               />

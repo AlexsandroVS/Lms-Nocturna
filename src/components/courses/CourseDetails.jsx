@@ -3,7 +3,7 @@ import CourseHeader from './CourseHeader';
 import LessonList from './LessonList';
 
 const CourseDetails = ({ course }) => {
-  const { title, description, progress, icon, color, lessons } = course;
+  const { title, description, progress, color, lessons } = course;
   
   return (
     <div className="container mx-auto p-8">
@@ -11,7 +11,6 @@ const CourseDetails = ({ course }) => {
         title={title}
         description={description}
         progress={progress}
-        icon={icon}
         color={color}
       />
       <LessonList lessons={lessons} />

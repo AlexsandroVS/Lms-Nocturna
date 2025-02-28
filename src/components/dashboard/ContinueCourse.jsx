@@ -1,54 +1,73 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import courses from "../../data/courses";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight, faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "../../context/AuthContext"; // Para obtener el currentUser y api
+import { useNavigate } from "react-router-dom";
 
 export default function ContinueCourse() {
-  // Función para encontrar la actividad más próxima a vencer
-  const findNextActivity = () => {
-    let nextActivity = null;
-    let closestDeadline = Infinity;
+  const { api, currentUser } = useAuth(); // Obtener el currentUser y api desde useAuth
+  const [recentActivities, setRecentActivities] = useState([]);
+  const navigate = useNavigate(); // Hook para la navegación
 
-    // Recorre todos los cursos y actividades
-    courses.forEach((course) => {
-      course.modules.forEach((module) => {
-        module.activities.forEach((activity) => {
-          if (!activity.completed) {
-            const deadline = new Date(activity.deadline).getTime();
-            if (deadline < closestDeadline) {
-              closestDeadline = deadline;
-              nextActivity = { ...activity, course };
-            }
-          }
+  useEffect(() => {
+    const fetchRecentActivities = async () => {
+      try {
+        const coursesResponse = await api.get(`/courses/user/${currentUser.id}`);
+        const coursesData = coursesResponse.data;
+
+        const activitiesPromises = coursesData.map(async (course) => {
+          const modulesResponse = await api.get(`/courses/${course.id}/modules`);
+          const modulesData = modulesResponse.data;
+
+          const activitiesPromises = modulesData.map(async (module) => {
+            const activitiesResponse = await api.get(
+              `/courses/${course.id}/modules/${module.id}/activities`
+            );
+            const activitiesData = activitiesResponse.data;
+
+            return activitiesData.map((activity) => ({
+              ...activity,
+              courseId: course.id,
+              courseTitle: course.title,
+              moduleId: module.id,
+              moduleTitle: module.title,
+            }));
+          });
+
+          const allActivities = await Promise.all(activitiesPromises);
+          return allActivities.flat();
         });
-      });
-    });
 
-    return nextActivity;
+        const allActivities = await Promise.all(activitiesPromises);
+        const flattenedActivities = allActivities.flat();
+
+        const sortedActivities = flattenedActivities
+          .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+          .slice(0, 4); // Las 4 actividades más cercanas
+
+        setRecentActivities(sortedActivities);
+      } catch (err) {
+        console.error("Error al obtener actividades:", err);
+      }
+    };
+
+    fetchRecentActivities();
+  }, [api, currentUser.id]);
+
+  const formatDate = (deadline) => {
+    const deadlineDate = new Date(deadline);
+    return deadlineDate.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
-  const nextActivity = findNextActivity();
-
-  if (!nextActivity) {
-    return (
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        className="bg-white p-6 rounded-xl shadow-xl"
-      >
-        <h2 className="font-semibold text-xl text-[#003049] mb-4">
-          No hay actividades pendientes
-        </h2>
-        <p className="text-gray-600">
-          ¡Felicidades! Has completado todas las actividades.
-        </p>
-      </motion.div>
-    );
-  }
-
-  const { course, title, deadline } = nextActivity;
-  const deadlineDate = new Date(deadline).toLocaleDateString();
-  const deadlineTime = new Date(deadline).toLocaleTimeString();
+  const handleActivityClick = (courseId, moduleId) => {
+    navigate(`/courses/${courseId}?module=${moduleId}`);
+  };
 
   return (
     <motion.div
@@ -56,50 +75,54 @@ export default function ContinueCourse() {
       animate={{ scale: 1 }}
       className="bg-white p-6 rounded-xl shadow-xl"
     >
-      <div className="flex flex-wrap justify-between mb-4">
-        <h2 className="font-semibold text-xl text-[#003049]">
-          Continúa donde lo dejaste
-        </h2>
-        <span className="text-md font-semibold" style={{ color: course.color }}>
-          {course.title} - {title}
-        </span>
-      </div>
-      <div className="flex flex-col md:flex-row items-center gap-4">
-        <div
-          className="w-24 h-24 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: `${course.color}20` }}
-        >
-          <FontAwesomeIcon
-            icon={course.icon}
-            className="text-4xl"
-            style={{ color: course.color }}
-          />
-        </div>
-        <div className="flex-1 w-full">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="h-2 rounded-full transition-all duration-500"
-              style={{
-                width: `${course.progress}%`,
-                backgroundColor: course.color,
-              }}
-            />
-          </div>
-          <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div>
-              <p className="text-gray-600">
-                Fecha límite: {deadlineDate} a las {deadlineTime}
-              </p>
-            </div>
-            <button
-              className="text-lg font-bold text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: course.color }}
+      <h2 className="font-semibold mb-4 text-xl text-[#003049]">📅 Actividades Recientes</h2>
+      <div className="space-y-4">
+        {recentActivities.length === 0 ? (
+          <p className="text-gray-600">No tienes actividades recientes.</p>
+        ) : (
+          recentActivities.map((activity, index) => (
+            <motion.div
+              key={index}
+              className="flex justify-between items-center p-4 bg-gray-50 rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+              onClick={() =>
+                handleActivityClick(activity.courseId, activity.moduleId)
+              }
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
             >
-              Continuar Lección{" "}
-              <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-10 h-10 flex items-center justify-center rounded-lg"
+                  style={{ backgroundColor: `${activity.courseColor}20` }}
+                >
+                  <FontAwesomeIcon
+                    icon={faBookOpen}
+                    className="text-2xl"
+                    style={{ color: activity.courseColor }}
+                  />
+                </div>
+                <div>
+                  <p className="text-lg font-medium text-gray-700">{activity.title}</p>
+                  <p className="text-sm text-gray-500">{activity.courseTitle} - {activity.moduleTitle}</p>
+                  <p className="text-xs text-gray-400">{formatDate(activity.deadline)}</p>
+                </div>
+              </div>
+              <FontAwesomeIcon icon={faArrowRight} className="text-gray-600" />
+            </motion.div>
+          ))
+        )}
+      </div>
+      <div className="mt-6">
+        <motion.button
+          className="w-full py-3 bg-orange-500 px-6 rounded-lg text-white font-medium"
+      
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate("/courses")}
+        >
+          Ver todos los cursos
+          <FontAwesomeIcon icon={faArrowRight} className="ml-2" />
+        </motion.button>
       </div>
     </motion.div>
   );

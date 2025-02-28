@@ -18,7 +18,7 @@ const Courses = () => {
       const fetchCourses = async () => {
         try {
           const response = await api.get("/courses"); // Hacemos la llamada a la API
-          setCourses(response.data); // Almacenamos los cursos en el estado
+          setCourses(response.data); 
         } catch (err) {
           setError("Error al obtener los cursos");
           console.error(err);
@@ -96,7 +96,7 @@ const Courses = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 }}
                 >
-                  <RecentActivities />
+                
                 </motion.div>
               </div>
             </AnimatePresence>

@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
-import defaultAvatar from "../../assets/admin-avatar.jpg";
+import defaultAvatar from "../../../public/img/admin-avatar.jpg";
 
 const CreateUsersModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({

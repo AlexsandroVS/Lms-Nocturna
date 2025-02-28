@@ -1,17 +1,15 @@
 /* eslint-disable react/prop-types */
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faBookOpen,
-  faClock,
   faArrowRight,
   faEdit,
   faTrash,
+  faLock,
+  faUnlock,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  countActivities,
-  calculateModuleDuration,
-} from "../../utils/courseUtils";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -20,15 +18,58 @@ const ModuleList = ({
   color,
   onEditModule = () => {},
   onDeleteModule = () => {},
+  onLockModule = () => {},
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, api } = useAuth();
   const navigate = useNavigate();
+
+  // Estado para actividades
+  const [activities, setActivities] = useState({});
+
+  // Función para obtener las actividades del módulo
+  const fetchActivities = async (courseId, moduleId) => {
+    try {
+      const response = await api.get(
+        `/courses/${courseId}/modules/${moduleId}/activities`
+      );
+      setActivities((prev) => ({
+        ...prev,
+        [moduleId]: response.data, // Guardamos las actividades de cada módulo
+      }));
+    } catch (err) {
+      console.error("Error al obtener actividades:", err);
+    }
+  };
+
+  // Obtener actividades cuando el módulo cambia
+  useEffect(() => {
+    modules.forEach((module) => {
+      if (!activities[module.ModuleID]) {
+        fetchActivities(module.CourseID, module.ModuleID);
+      }
+    });
+  }, [modules, activities, api]);
+
+  const handleLockToggle = async (moduleId, currentLockStatus) => {
+    try {
+      const newLockStatus = currentLockStatus === 1 ? 0 : 1;
+
+      // Actualizar primero en el backend
+      await api.put(`/courses/${modules[0].CourseID}/modules/${moduleId}`, {
+        isLocked: newLockStatus,
+      });
+
+      // Luego notificar al componente padre para actualizar el estado
+      onLockModule(moduleId, newLockStatus);
+    } catch (err) {
+      console.error("Error al cambiar el estado de bloqueo:", err);
+    }
+  };
 
   return (
     <div className="space-y-4">
       {modules.map((module, index) => {
-        const totalActivities = countActivities(module);
-        const totalMinutes = calculateModuleDuration(module);
+        const totalActivities = activities[module.ModuleID]?.length || 0;
 
         return (
           <motion.div
@@ -37,93 +78,111 @@ const ModuleList = ({
             animate={{ y: 0, opacity: 1 }}
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
-            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 group"
+            className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 group relative"
           >
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-              <div className="mb-4 md:mb-0">
-                <h3 className="text-xl font-semibold mb-2">{module.title}</h3>
-                <div className="flex flex-wrap gap-4 text-gray-600">
-                  <motion.span
-                    className="flex items-center"
-                    whileHover={{ x: 5 }}
-                  >
-                    <FontAwesomeIcon
-                      icon={faBookOpen}
-                      className="mr-2 transition-colors"
-                      style={{ color }}
-                    />
-                    {totalActivities} actividades
-                  </motion.span>
-                  <motion.span
-                    className="flex items-center"
-                    whileHover={{ x: 5 }}
-                  >
-                    <FontAwesomeIcon
-                      icon={faClock}
-                      className="mr-2 transition-colors"
-                      style={{ color }}
-                    />
-                    {totalMinutes} minutos
-                  </motion.span>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              {/* Contenido izquierdo */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-semibold truncate">
+                    {module.title}
+                  </h3>
+                  {module.isLocked ? (
+                    <span className="px-2 py-1 bg-red-100 text-red-800 text-sm rounded-full flex items-center gap-1">
+                      <FontAwesomeIcon icon={faLock} className="text-xs" />
+                      <span>Bloqueado</span>
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded-full flex items-center gap-1">
+                      <FontAwesomeIcon icon={faUnlock} className="text-xs" />
+                      <span>Disponible</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center text-gray-600">
+                  <FontAwesomeIcon
+                    icon={faBookOpen}
+                    className="mr-2"
+                    style={{ color }}
+                  />
+                  <span className="text-sm">{totalActivities} actividades</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Botón Ir al módulo */}
+              {/* Contenedor de botones */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                {/* Botón principal */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-2 rounded-full text-white font-medium flex items-center gap-2"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   style={{ backgroundColor: color }}
-                  onClick={() => {
-                    console.log(module); // Verifica el valor de los parámetros
-                    if (module.CourseID && module.ModuleID) {
-                      // Asegúrate de que `ModuleID` es `ModuleID` y `CourseID` es `CourseID`
-                      navigate(
-                        `/courses/${module.CourseID}/modules/${module.ModuleID}`
-                      ); // Usa `ModuleID` para la redirección
-                    } else {
-                      console.error(
-                        "Error: No se puede redirigir debido a CourseID o ModuleID inválido.",
-                        module
-                      );
-                    }
-                  }}
+                  onClick={() =>
+                    navigate(
+                      `/courses/${module.CourseID}/modules/${module.ModuleID}`
+                    )
+                  }
                 >
-                  Ir al módulo
-                  <FontAwesomeIcon
-                    icon={faArrowRight}
-                    className="transition-transform group-hover:translate-x-1"
-                  />
+                  <span>Ver módulo</span>
+                  <FontAwesomeIcon icon={faArrowRight} className="text-sm" />
                 </motion.button>
 
-                {/* Botones de edición y eliminación (Solo para Admins) */}
+                {/* Botones de administración */}
                 {currentUser?.role === "admin" && (
-                  <>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditModule(module); // Pasa todo el módulo para editar
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faEdit} />
-                    </motion.button>
+                  <div className="flex gap-2">
+                    {/* Grupo de acciones secundarias */}
+                    <div className="flex border-l border-gray-200 pl-2">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditModule(module);
+                        }}
+                        title="Editar módulo"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                      </motion.button>
 
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 rounded-md bg-red-600 text-white hover:bg-red-700 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteModule(module.ModuleID); // Asegúrate de pasar `ModuleID` correctamente
-                      }}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </motion.button>
-                  </>
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-red-100 text-red-600 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteModule(module.ModuleID);
+                        }}
+                        title="Eliminar módulo"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </motion.button>
+
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`p-2 rounded-lg ${
+                          module.isLocked
+                            ? "bg-red-100 hover:bg-red-200 text-red-600"
+                            : "bg-green-100 hover:bg-green-200 text-green-600"
+                        } transition-colors`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLockToggle(module.ModuleID, module.isLocked);
+                        }}
+                        title={
+                          module.isLocked
+                            ? "Desbloquear módulo"
+                            : "Bloquear módulo"
+                        }
+                      >
+                        <FontAwesomeIcon
+                          icon={module.isLocked ? faLock : faUnlock}
+                          className="transition-transform"
+                        />
+                      </motion.button>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

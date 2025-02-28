@@ -1,71 +1,100 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom"; // Importar useNavigate
-import courses from "../../data/courses"; // Ajusta la ruta
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function CriticalDeadlines() {
-  const navigate = useNavigate(); // Hook para la navegación
+  const { api, currentUser } = useAuth();
+  const [upcomingActivities, setUpcomingActivities] = useState([]);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
-  // Función para obtener las actividades próximas a vencer
-  const getUpcomingActivities = () => {
-    const allActivities = courses.flatMap((course) =>
-      course.modules.flatMap((module) =>
-        module.activities.map((activity) => ({
-          ...activity,
-          courseId: course.id, // Agregar el ID del curso
-          moduleId: module.id, // Agregar el ID del módulo
-          courseTitle: course.title,
-          moduleTitle: module.title,
-        }))
-      )
-    );
+  useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        // Obtener todos los cursos
+        const coursesResponse = await api.get("/courses");
+        const courses = coursesResponse.data;
+        console.log (courses);
+        // Obtener módulos y actividades en paralelo
+        const activitiesPromises = courses.flatMap(async (course) => {
+          const modulesResponse = await api.get(`/courses/${course.id}/modules`);
+          const modules = modulesResponse.data;
+          console.log (modules);
 
-    // Ordenar por fecha más próxima
-    return allActivities
-      .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
-      .slice(0, 4);
-  };
+          const moduleActivities = await Promise.all(
+            modules.map(async (module) => {
+              try {
+                const { data: activities } = await api.get(
+                  `/courses/${course.id}/modules/${module.ModuleID}/activities`
+                );
+                
+                // Mapear la estructura correcta de actividades
+                return activities.map(activity => ({
+                  id: activity.ActivityID,
+                  title: activity.Title,
+                  deadline: activity.Deadline,
+                  courseId: course.id,
+                  courseTitle: course.title,
+                  moduleId: module.id,
+                  moduleTitle: module.title,
+                }));
+              } catch (error) {
+                console.error(`Error en módulo ${module.id}:`, error);
+                return [];
+              }
+            })
+          );
 
+          return moduleActivities.flat();
+        });
+
+        const allActivities = (await Promise.all(activitiesPromises)).flat();
+        
+        const sorted = allActivities
+          .filter(a => a.deadline)
+          .sort((a, b) => new Date(a.deadline) - new Date(b.deadline))
+          .slice(0, 4);
+
+        setUpcomingActivities(sorted);
+      } catch (error) {
+        console.error("Error general:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, [api]);
   // Función para determinar el color del borde
   const getBorderColor = (deadline) => {
-    const today = new Date();
-    const deadlineDate = new Date(deadline);
-    const timeDiff = deadlineDate - today;
-    const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-
-    if (daysDiff <= 1) return "#d62828"; // Rojo
-    if (daysDiff <= 3) return "#fcbf49"; // Amarillo
-    return "#00C951"; // Verde
+    const daysDiff = Math.ceil((new Date(deadline) - Date.now()) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff <= 1) return "#d62828";
+    if (daysDiff <= 3) return "#fcbf49";
+    return "#00C951";
   };
 
-  // Función para formatear la fecha
+  // Función para formatear la fecha (optimizada)
   const formatDate = (deadline) => {
-    const deadlineDate = new Date(deadline);
-    const today = new Date();
-
-    if (deadlineDate.toDateString() === today.toDateString()) {
-      return (
-        "Hoy " +
-        deadlineDate.toLocaleTimeString("es-ES", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      );
-    }
-
-    return deadlineDate.toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const options = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      ...(new Date(deadline).toDateString() !== new Date().toDateString() && {
+        day: 'numeric',
+        month: 'short'
+      })
+    };
+    
+    return new Date(deadline).toLocaleDateString("es-ES", options)
+      .replace(/,/, '');
   };
 
-  // Función para manejar el clic en una actividad
   const handleActivityClick = (courseId, moduleId) => {
-    navigate(`/courses/${courseId}?module=${moduleId}`); // Redirigir a la página del curso con el módulo como parámetro
+    navigate(`/courses/${courseId}?module=${moduleId}`);
   };
 
-  const upcomingActivities = getUpcomingActivities();
+  if (loading) return <div>Cargando plazos críticos...</div>;
 
   return (
     <motion.div
@@ -78,14 +107,12 @@ export default function CriticalDeadlines() {
       </h2>
       <div className="flex-1 overflow-auto">
         <div className="space-y-4 pr-2">
-          {upcomingActivities.map((activity, index) => (
+          {upcomingActivities.map((activity) => (
             <div
-              key={index}
+              key={`${activity.courseId}-${activity.moduleId}-${activity.id}`}
               className="border-l-4 pl-4 relative cursor-pointer hover:bg-gray-50 transition-colors duration-200"
               style={{ borderColor: getBorderColor(activity.deadline) }}
-              onClick={() =>
-                handleActivityClick(activity.courseId, activity.moduleId)
-              } // Manejar el clic
+              onClick={() => handleActivityClick(activity.courseId, activity.moduleId)}
             >
               <p className="text-lg font-medium truncate">{activity.title}</p>
               <p className="text-sm text-gray-500 truncate">
@@ -94,15 +121,18 @@ export default function CriticalDeadlines() {
               <p className="text-sm mt-1">
                 {formatDate(activity.deadline)}
                 <span className="ml-2">
-                  {getBorderColor(activity.deadline) === "#d62828"
-                    ? "🔥"
-                    : getBorderColor(activity.deadline) === "#fcbf49"
-                    ? "⏳"
-                    : "✅"}
+                  {{
+                    "#d62828": "🔥",
+                    "#fcbf49": "⏳",
+                    "#00C951": "✅"
+                  }[getBorderColor(activity.deadline)]}
                 </span>
               </p>
             </div>
           ))}
+          {!upcomingActivities.length && (
+            <p className="text-gray-500">No hay plazos próximos</p>
+          )}
         </div>
       </div>
     </motion.div>

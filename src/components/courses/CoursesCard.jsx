@@ -1,4 +1,6 @@
+/* eslint-disable react/prop-types */
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -15,6 +17,7 @@ import {
   faTools,
   faBolt,
 } from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "../../context/AuthContext"; // Asegúrate de que esto esté importado correctamente
 
 const ICON_MAP = {
   "book-open": faBookOpen,
@@ -36,6 +39,8 @@ const STATUS_CONFIG = {
 
 const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
+  const { api, currentUser } = useAuth(); // Accedemos a currentUser desde useAuth
+  const [courseAverage, setCourseAverage] = useState(0); // Estado para el promedio del curso
 
   const {
     id,
@@ -46,12 +51,34 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
     durationHours = 0,
     createdByName = "Desconocido",
     color = "#4F46E5",
-    progress = 0,
   } = course || {};
 
   const { color: statusColor, label: statusLabel } =
     STATUS_CONFIG[status] || STATUS_CONFIG.draft;
   const iconFa = ICON_MAP[icon] || faBookOpen;
+
+  // Llamada a la API para obtener el promedio del curso
+  useEffect(() => {
+    const fetchCourseAverage = async () => {
+      if (!currentUser?.id) return; // Asegurarse de que currentUser.id está disponible
+
+      try {
+        const response = await api.get(
+          `/grades/user/${currentUser.id}/course/${id}/averages`
+        );
+        if (response.data.success) {
+          const percentage = response.data.data.courseAverage * 5; // Convertimos la nota de 20 a porcentaje
+          setCourseAverage(percentage); // Establecer el promedio como porcentaje
+        } else {
+          console.error("No se pudo obtener el promedio del curso");
+        }
+      } catch (error) {
+        console.error("Error al obtener el promedio del curso:", error);
+      }
+    };
+
+    fetchCourseAverage();
+  }, [api, currentUser?.id, id]);
 
   const handleCardClick = () => navigate(`/courses/${id}`);
 
@@ -80,14 +107,20 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
               className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
               aria-label="Editar curso"
             >
-              <FontAwesomeIcon icon={faEdit} className="text-gray-500 text-sm" />
+              <FontAwesomeIcon
+                icon={faEdit}
+                className="text-gray-500 text-sm"
+              />
             </button>
             <button
               onClick={(e) => handleAdminClick(e, onDelete)}
               className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
               aria-label="Eliminar curso"
             >
-              <FontAwesomeIcon icon={faTrash} className="text-red-500 text-sm" />
+              <FontAwesomeIcon
+                icon={faTrash}
+                className="text-red-500 text-sm"
+              />
             </button>
           </div>
         )}
@@ -97,7 +130,11 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
           className="w-8 h-8 flex items-center justify-center rounded-lg bg-opacity-20 backdrop-blur-sm"
           style={{ backgroundColor: `${color}30` }}
         >
-          <FontAwesomeIcon icon={iconFa} className="text-lg" style={{ color }} />
+          <FontAwesomeIcon
+            icon={iconFa}
+            className="text-lg"
+            style={{ color }}
+          />
         </div>
       </div>
 
@@ -116,7 +153,9 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
               {statusLabel}
             </span>
           </div>
-          <span className="text-xs text-gray-500 block">Creado por: {createdByName}</span>
+          <span className="text-xs text-gray-500 block">
+            Creado por: {createdByName}
+          </span>
         </div>
 
         {/* Title & Description */}
@@ -131,36 +170,42 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
 
         {/* Progress Section */}
         <div className="border-t pt-4 space-y-3">
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-gray-600 font-medium">
-              <span>Progreso</span>
-              <span>{progress}%</span>
-            </div>
-            <motion.div
-              className="h-2 bg-gray-200 rounded-full overflow-hidden"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${progress}%`, backgroundColor: color }}
-              />
-            </motion.div>
-          </div>
+  <div className="space-y-1">
+    <div className="flex justify-between text-xs text-gray-600 font-medium">
+      <span>Promedio</span>
+      <span>{Math.round(courseAverage)}%</span> {/* Mostramos el promedio como porcentaje */}
+    </div>
 
-          {/* Action Button */}
-          <button
-            className="w-full py-2 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: color }}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/courses/${id}`);
-            }}
-          >
-            Ver curso
-            <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
-          </button>
-        </div>
+    {/* Barra de progreso */}
+    <motion.div
+      className="w-full h-4 bg-gray-200 rounded-full overflow-hidden"
+      initial={{ width: 0 }}
+      animate={{ width: '100%' }} // La barra gris debe ocupar todo el ancho
+    >
+      <div
+        className="h-full rounded-full transition-all duration-500"
+        style={{
+          width: `${Math.round(courseAverage)}%`, // La barra de color cambia de tamaño dependiendo del porcentaje
+          backgroundColor: color,
+        }}
+      />
+    </motion.div>
+  </div>
+
+  {/* Action Button */}
+  <button
+    className="w-full py-2 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm hover:opacity-90 transition-opacity"
+    style={{ backgroundColor: color }}
+    onClick={(e) => {
+      e.stopPropagation();
+      navigate(`/courses/${id}`);
+    }}
+  >
+    Ver curso
+    <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+  </button>
+</div>
+
       </div>
     </motion.div>
   );

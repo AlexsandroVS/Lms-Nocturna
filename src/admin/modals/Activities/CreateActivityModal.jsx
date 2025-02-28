@@ -33,23 +33,30 @@ const CreateActivityModal = ({ onClose, onSave }) => {
     if (file) {
       let allowedTypes = [];
       let errorMessage = "";
-      
-      switch(formData.type) {
+
+      switch (formData.type) {
         case "Documento":
           allowedTypes = [
             "application/pdf",
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
           ];
           errorMessage = "Solo se permiten documentos PDF y Word";
           break;
         case "Video":
-          allowedTypes = ["video/mp4", "video/avi", "video/mov", "video/webm"];
-          errorMessage = "Solo se permiten archivos de video (MP4, AVI, MOV, WebM)";
+          allowedTypes = [
+            "video/mp4", // MP4
+            "video/x-msvideo", // AVI
+            "video/quicktime", // MOV
+            "video/webm", // WebM
+            "video/mpeg", // MPEG
+            "video/x-matroska", // MKV
+          ];
+          errorMessage = "Formatos válidos: MP4, AVI, MOV, WebM, MKV";
           break;
         case "Tarea":
           allowedTypes = ["application/pdf", "text/plain"];
-          errorMessage = "Solo se permiten PDF o archivos de texto";
+          errorMessage = "Solo se permiten PDF o archivos de texto (.txt)";
           break;
         default:
           allowedTypes = [];
@@ -89,9 +96,11 @@ const CreateActivityModal = ({ onClose, onSave }) => {
   };
 
   const getFileIcon = () => {
-    switch(formData.type) {
+    switch (formData.type) {
       case "Documento":
-        return formData.file?.type === "application/pdf" ? faFilePdf : faFileWord;
+        return formData.file?.type === "application/pdf"
+          ? faFilePdf
+          : faFileWord;
       case "Video":
         return faVideo;
       case "Tarea":
@@ -102,7 +111,7 @@ const CreateActivityModal = ({ onClose, onSave }) => {
   };
 
   const getUploadLabel = () => {
-    switch(formData.type) {
+    switch (formData.type) {
       case "Documento":
         return "Subir documento (PDF o Word)";
       case "Video":
@@ -135,7 +144,10 @@ const CreateActivityModal = ({ onClose, onSave }) => {
 
         {error && (
           <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 mb-6">
-            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500" />
+            <FontAwesomeIcon
+              icon={faExclamationTriangle}
+              className="text-red-500"
+            />
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
@@ -159,8 +171,18 @@ const CreateActivityModal = ({ onClose, onSave }) => {
                 <option value="Documento">Documento</option>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -207,14 +229,24 @@ const CreateActivityModal = ({ onClose, onSave }) => {
                 onChange={handleFileChange}
                 className="hidden"
                 accept={
-                  formData.type === "Documento" ? ".pdf,.doc,.docx" :
-                  formData.type === "Video" ? "video/*" :
-                  formData.type === "Tarea" ? ".pdf,.txt" : ""
+                  formData.type === "Documento"
+                    ? ".pdf,.doc,.docx"
+                    : formData.type === "Video"
+                    ? ".mp4,.avi,.mov,.webm,.mkv"
+                    : formData.type === "Tarea"
+                    ? ".pdf,.txt"
+                    : ""
                 }
                 disabled={!formData.type}
               />
-              <div className={`border-2 border-dashed border-gray-200 rounded-xl p-6 transition-all 
-                ${formData.file ? "border-blue-500 bg-blue-50" : "group-hover:border-blue-300"}`}>
+              <div
+                className={`border-2 border-dashed border-gray-200 rounded-xl p-6 transition-all 
+                ${
+                  formData.file
+                    ? "border-blue-500 bg-blue-50"
+                    : "group-hover:border-blue-300"
+                }`}
+              >
                 <div className="flex flex-col items-center justify-center gap-4">
                   <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
                     <FontAwesomeIcon
@@ -226,7 +258,9 @@ const CreateActivityModal = ({ onClose, onSave }) => {
                   </div>
                   <p className="text-center text-sm text-gray-500">
                     {formData.file ? (
-                      <span className="text-blue-600 font-medium">{formData.file.name}</span>
+                      <span className="text-blue-600 font-medium">
+                        {formData.file.name}
+                      </span>
                     ) : (
                       "Haz click o arrastra tu archivo"
                     )}

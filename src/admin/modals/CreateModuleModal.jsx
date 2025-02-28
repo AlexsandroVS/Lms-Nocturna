@@ -2,18 +2,19 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faXmark, faPlus, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { faXmark, faPlus, faSpinner, faBookOpen } from "@fortawesome/free-solid-svg-icons";
 
 export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
   const [title, setTitle] = useState("");
-  const [order, setOrder] = useState("");
+  const [moduleOrder, setModuleOrder] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden';
     return () => {
-      // Resetear el estado al cerrar el modal
+      document.body.style.overflow = 'auto';
       setTitle("");
-      setOrder("");
+      setModuleOrder("");
       setLoading(false);
     };
   }, []);
@@ -23,8 +24,8 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
     setLoading(true);
 
     try {
-      await onSave({ courseId, title, order: order ? Number(order) : null });
-      onClose(); // Cerrar modal después de guardar
+      await onSave({ courseId, title, moduleOrder: moduleOrder ? Number(moduleOrder) : null });
+      onClose();
     } catch (error) {
       console.error("Error al crear módulo:", error);
     } finally {
@@ -33,80 +34,99 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40">
       <motion.div
-        className="bg-[#1E293B] text-white rounded-xl p-5 w-full max-w-md relative shadow-xl"
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        exit={{ scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 300 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">
-            <FontAwesomeIcon icon={faPlus} className="mr-2 text-indigo-400" />
-            Crear Módulo
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 transition-colors"
-          >
-            <FontAwesomeIcon icon={faXmark} className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Título del módulo
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg bg-[#2D3748] text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Ej: Introducción, Configuración..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Orden (opcional)
-            </label>
-            <input
-              type="number"
-              min={0}
-              value={order}
-              onChange={(e) => setOrder(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg bg-[#2D3748] text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Ej: 1"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3">
+        <div className="p-8">
+          {/* Encabezado */}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <FontAwesomeIcon 
+                  icon={faBookOpen} 
+                  className="text-blue-600 bg-blue-100 p-2 rounded-lg"
+                />
+                Nuevo Módulo
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Agrega un nuevo módulo al curso</p>
+            </div>
             <button
-              type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md bg-gray-600 text-white hover:bg-gray-500"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!title || loading}
-              className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 flex items-center justify-center"
-            >
-              {loading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Crear"}
+              <FontAwesomeIcon icon={faXmark} className="h-6 w-6" />
             </button>
           </div>
-        </form>
+
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Título */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Título del módulo *
+              </label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Introducción al curso"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Orden */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Orden de visualización
+                <span className="text-gray-400 ml-1">(opcional)</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={moduleOrder}
+                onChange={(e) => setModuleOrder(e.target.value)}
+                placeholder="Ej: 1"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Botones */}
+            <div className="pt-6 flex justify-end gap-3">
+              <motion.button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Cancelar
+              </motion.button>
+              <motion.button
+                type="submit"
+                disabled={!title || loading}
+                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {loading ? (
+                  <FontAwesomeIcon icon={faSpinner} spin className="text-lg" />
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faPlus} />
+                    Crear Módulo
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </form>
+        </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };

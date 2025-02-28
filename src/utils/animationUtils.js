@@ -1,3 +1,30 @@
+// utils/adjustColorLightness.js
+
+/**
+ * Ajusta la luminosidad de un color hexadecimal.
+ * @param {string} hex - El color en formato hexadecimal (ej: "#ff5733").
+ * @param {number} amount - El valor de ajuste de luminosidad (puede ser positivo para hacer más claro o negativo para hacerlo más oscuro).
+ * @returns {string} - El color ajustado en formato hexadecimal.
+ */
+export const adjustColorLightness = (hex, amount) => {
+  // Asegúrate de que el valor de entrada sea un color válido
+  if (!/^#[0-9A-F]{6}$/i.test(hex)) {
+    throw new Error('El color debe estar en formato hexadecimal #RRGGBB.');
+  }
+
+  // Convierte el color hexadecimal a RGB
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+
+  // Ajusta la luminosidad del color
+  r = Math.min(255, Math.max(0, r + amount));
+  g = Math.min(255, Math.max(0, g + amount));
+  b = Math.min(255, Math.max(0, b + amount));
+
+  // Convierte los valores RGB ajustados nuevamente a hexadecimal
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+};
 // utils/animations.js
 export const containerVariants = {
   hidden: { opacity: 0 },

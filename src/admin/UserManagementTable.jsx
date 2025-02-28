@@ -1,39 +1,22 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faTrash, faEdit } from "@fortawesome/free-solid-svg-icons";
-import { users } from "../data/userData";
-import { tableAnimations } from "../utils/animationUtils";
-import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import { faSearch, faTrashAlt, faEdit } from "@fortawesome/free-solid-svg-icons";
+import DefaultAvatar from "../../public/img/admin-avatar.jpg"; // Asegúrate de importar el avatar por defecto
 
-const UserManagementTable = () => {
-  const [localUsers, setLocalUsers] = useState(users);
+// Función para construir la URL del avatar
+
+
+const UserManagementTable = ({ users, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [userToDelete, setUserToDelete] = useState(null);
 
-  // Animaciones
-
-  // Filtrar usuarios
-  const filteredUsers = localUsers.filter(
+  // Filtrar usuarios según búsqueda
+  const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  // Eliminar usuario
-  const handleDelete = () => {
-    setLocalUsers(localUsers.filter((user) => user.id !== userToDelete.id));
-    setUserToDelete(null);
-  };
-
-  // Cambiar rol
-  const handleRoleChange = (userId, newRole) => {
-    setLocalUsers(
-      localUsers.map((user) =>
-        user.id === userId ? { ...user, role: newRole } : user
-      )
-    );
-  };
 
   return (
     <motion.div
@@ -41,8 +24,8 @@ const UserManagementTable = () => {
       animate="visible"
       className="bg-white flex flex-col h-[600px] rounded-xl shadow-2xl p-6"
     >
-      {/* Header con buscador mejorado */}
-      <div className="flex  flex-col md:flex-row justify-between items-center mb-6 gap-4">
+      {/* Header con buscador */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-800 bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
             Gestión de Usuarios
@@ -66,7 +49,7 @@ const UserManagementTable = () => {
         </div>
       </div>
 
-      {/* Tabla de usuarios mejorada */}
+      {/* Tabla de usuarios */}
       <div className="overflow-x-auto rounded-lg border border-gray-100">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -83,7 +66,10 @@ const UserManagementTable = () => {
               {filteredUsers.map((user) => (
                 <motion.tr
                   key={user.id}
-                  variants={tableAnimations}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
                   initial="hidden"
                   animate="visible"
                   exit="exit"
@@ -92,7 +78,7 @@ const UserManagementTable = () => {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <img
-                        src={user.avatar}
+                        src={user.avatar}// Aquí usamos la función getAvatarUrl
                         alt={user.name}
                         className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm"
                       />
@@ -106,21 +92,7 @@ const UserManagementTable = () => {
                   </td>
 
                   <td className="px-4 py-3">
-                    <select
-                      value={user.role}
-                      onChange={(e) =>
-                        handleRoleChange(user.id, e.target.value)
-                      }
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                        user.role === "admin"
-                          ? "border-indigo-100 bg-indigo-50 text-indigo-700"
-                          : "border-gray-100 bg-gray-50 text-gray-700"
-                      } hover:shadow-sm transition-all`}
-                    >
-                      <option value="admin">Administrador</option>
-                      <option value="teacher">Instructor</option>
-                      <option value="user">Estudiante</option>
-                    </select>
+                    <span className="text-sm text-gray-600">{user.role}</span>
                   </td>
 
                   <td className="px-4 py-3">
@@ -136,18 +108,22 @@ const UserManagementTable = () => {
 
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1.5">
-                      <button
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                        onClick={() => console.log("Editar usuario:", user.id)}
+                      <motion.button
+                        onClick={() => onEdit(user)} // Llamamos a onEdit
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
                       >
-                        <FontAwesomeIcon icon={faEdit} className="w-4 h-4" />
-                      </button>
-                      <button
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        onClick={() => setUserToDelete(user)}
+                        <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                        Editar
+                      </motion.button>
+                      <motion.button
+                        onClick={() => onDelete(user)} // Llamamos a onDelete
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
                       >
-                        <FontAwesomeIcon icon={faTrash} className="w-4 h-4" />
-                      </button>
+                        <FontAwesomeIcon icon={faTrashAlt} className="mr-2" />
+                        Eliminar
+                      </motion.button>
                     </div>
                   </td>
                 </motion.tr>
@@ -156,36 +132,6 @@ const UserManagementTable = () => {
           </AnimatePresence>
         </table>
       </div>
-
-      {/* Empty state */}
-      {filteredUsers.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center py-12"
-        >
-          <div className="mb-4 p-4 bg-gray-100 rounded-full">
-            <FontAwesomeIcon
-              icon={faSearch}
-              className="text-gray-400 text-2xl"
-            />
-          </div>
-          <h3 className="text-gray-600 font-medium">
-            No se encontraron usuarios
-          </h3>
-          <p className="text-gray-400 text-sm mt-1">
-            Intenta con otros términos de búsqueda
-          </p>
-        </motion.div>
-      )}
-
-      {/* Modal mejorado */}
-      <DeleteConfirmationModal
-        isOpen={!!userToDelete}
-        onConfirm={handleDelete}
-        onCancel={() => setUserToDelete(null)}
-        userName={userToDelete?.name}
-      />
     </motion.div>
   );
 };

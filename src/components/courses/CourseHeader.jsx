@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClock } from '@fortawesome/free-solid-svg-icons';
 
-const CourseHeader = ({ course, color }) => {
+const CourseHeader = ({ course, color, courseAverage }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -35,14 +35,15 @@ const CourseHeader = ({ course, color }) => {
         >
           <div className="flex items-center space-x-2 mb-2 justify-center md:justify-end">
             <FontAwesomeIcon icon={faClock} className="text-xl" />
-            <span>Duración: {course.duration}</span>
+            <span>Duración: {course.durationHours} h</span>
           </div>
+          {/* Mostrar el average del curso */}
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="bg-white bg-opacity-20 px-4 py-2 rounded-full font-semibold backdrop-blur-sm inline-block"
             style={{ color: color }}
           >
-            Progreso: {course.progress}%
+            Promedio del Curso: {courseAverage || "No disponible"}%
           </motion.div>
         </motion.div>
       </div>
