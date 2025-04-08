@@ -114,7 +114,8 @@ const ActivityDetailsModal = ({ activity, onClose }) => {
     const [cardLoading, setCardLoading] = useState(false);
     const { api } = useAuth();
     const isVideo = file.FileType.startsWith("video/");
-    const fileUrl = `${api.defaults.baseURL}/files/${file.FileID}`;
+    const fileUrl = `http://localhost:5000/${file.Files.replace(/\\/g, "/")}`;
+
 
     const handleDownload = async () => {
       try {

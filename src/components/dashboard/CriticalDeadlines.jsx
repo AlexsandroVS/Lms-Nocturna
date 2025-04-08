@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function CriticalDeadlines() {
+  // eslint-disable-next-line no-unused-vars
   const { api, currentUser } = useAuth();
   const [upcomingActivities, setUpcomingActivities] = useState([]);
   const navigate = useNavigate();
@@ -15,12 +16,12 @@ export default function CriticalDeadlines() {
         // Obtener todos los cursos
         const coursesResponse = await api.get("/courses");
         const courses = coursesResponse.data;
-        console.log (courses);
+     
         // Obtener módulos y actividades en paralelo
         const activitiesPromises = courses.flatMap(async (course) => {
           const modulesResponse = await api.get(`/courses/${course.id}/modules`);
           const modules = modulesResponse.data;
-          console.log (modules);
+
 
           const moduleActivities = await Promise.all(
             modules.map(async (module) => {

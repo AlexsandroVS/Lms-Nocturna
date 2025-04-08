@@ -65,6 +65,12 @@ src/
 │ └── ui/
 │ ├── Loader.jsx
 │ └── ProgressBar.jsx
+├── assets/
+│ ├── fondo-login.jpg
+│ ├── avatar.jpg
+│ └── logo.png
+├── context/
+│ └── AuthContext.jsx
 ├── data/
 │ ├── courses.js
 │ ├── dashboardData.js
@@ -72,9 +78,34 @@ src/
 ├── pages/
 │ ├── CoursePage.jsx
 │ ├── Courses.jsx
-│ ├── Dashboard.jsx # Renderizado condicional (admin/user)
+│ ├── Dashboard.jsx
 │ └── ProfilePage.jsx
 ├── admin/
+│ ├── modals/
+│ │ ├── Activities/
+│ │ │   ├── ActivityDetailsModal.jsx
+│ │ │   ├── CreateActivityModal.jsx
+│ │ │   ├── DeleteActivityModal.jsx
+│ │ │   └── EditActivityModal.jsx
+│ │ ├── Files/
+│ │ │   └── RatingModal.jsx
+│ │ ├── Modules/
+│ │ │   ├── EditModuleModal.jsx
+│ │ │   ├── DeleteModuleModal.jsx
+│ │ │   └──  CreateModuleModal.jsx
+│ │ ├── CreateCourseModal.jsx
+│ │ ├── CreateUsersModal.jsx
+│ │ ├── DeleteCourseModal.jsx
+│ │ ├── DeleeteUserModal.jsx
+│ │ ├── EditCourseModal.jsx
+│ │ └──  EditUsersModal.jsx
+│ ├── AProfile/
+│ │ ├── AdminProfile.jsx
+│ │ ├── AdvancedFilters.jsx
+│ │ ├── DashboardSummary.jsx
+│ │ ├── MetricsDashboard.jsx
+│ │ ├── SearchBar.jsx
+│ │ └── UserTable.jsx
 │ ├── Acourses/
 │ │ ├── AdminCourse.jsx
 │ │ ├── CourseManagement.jsx
@@ -85,17 +116,15 @@ src/
 │ ├── AdminStats.jsx
 │ ├── UserManagementTable.jsx
 │ ├── CourseManagement.jsx
-│ ├── AdminQuickActions.jsx
-│ ├── UserManagementPreview.jsx
-│ ├── CourseProgressChart.jsx
-│ ├── EnrollmentStats.jsx
-│ ├── CourseManagementGrid.jsx
-│ └── LearningAnalytics.jsx
+│ └── DeleteConfirmationModal.jsx
 ├── utils/
 │ ├── courseUtils.js
 │ ├── animationUtils.js
 │ └── chartConfig.js
-└── App.jsx
+├── App.jsx
+├── index.css
+├── ProtectedRoute.jsx
+└──  main.jsx
 
 Implementación del Admin Dashboard
 

@@ -8,7 +8,7 @@ import ProgressSidebar from "../components/courses/ProgressSidebar";
 import { calculateCourseProgress } from "../utils/courseUtils";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { CreateModuleModal } from "../admin/modals/CreateModuleModal";
+import { CreateModuleModal } from "../admin/modals/Modules/CreateModuleModal";
 import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
 
@@ -66,6 +66,7 @@ const CoursePage = () => {
 
     const fetchData = async () => {
       try {
+        // eslint-disable-next-line no-unused-vars
         const [courseResp, modulesResp] = await Promise.all([
           api.get(`/courses/${id}`, { signal: controller.signal }),
           api.get(`/courses/${id}/modules`, { signal: controller.signal }),

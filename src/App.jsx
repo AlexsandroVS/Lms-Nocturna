@@ -12,8 +12,8 @@ import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
 import ActivityPage from "./pages/ActivityPage";
 import FilesPage from "./pages/FilesPage";
-import AdminDashboard from "./admin/AdminDashboard";
 
+// eslint-disable-next-line react/prop-types
 const DashboardLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
@@ -123,27 +123,6 @@ const App = () => {
                   }
                 />
               </Route>
-
-              {/* Rutas de administrador */}
-              <Route
-                element={
-                  <ProtectedRoute roles={["admin"]} layout={DashboardLayout} />
-                }
-              >
-                <Route
-                  path="/admin"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <AdminDashboard />
-                    </motion.div>
-                  }
-                />
-              </Route>
-
               {/* Redirección para rutas no encontradas */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
