@@ -68,7 +68,7 @@ const CreateActivityModal = ({ onClose, onSave }) => {
         return;
       }
 
-      if (file.size > 50 * 1024 * 1024) {
+      if (file.size > 100 * 1024 * 1024) {
         setError("El archivo es demasiado grande. El límite es 50 MB.");
         return;
       }

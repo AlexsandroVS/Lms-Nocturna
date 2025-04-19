@@ -38,7 +38,7 @@ const UserManagementTable = ({ users, onEdit, onDelete }) => {
           <input
             type="text"
             placeholder="Buscar por nombre o email..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            className="w-full pl-10 pr-4 py-2.5 rounded-lg border-1 border-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -50,7 +50,7 @@ const UserManagementTable = ({ users, onEdit, onDelete }) => {
       </div>
 
       {/* Tabla de usuarios */}
-      <div className="overflow-x-auto rounded-lg border border-gray-100">
+      <div className="overflow-x-auto rounded-lg  border-gray-100">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr className="text-left text-gray-600">

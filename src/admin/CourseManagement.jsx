@@ -65,7 +65,7 @@ export default function CourseManagement() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl shadow-lg border border-gray-100 p-6 space-y-4"
+      className="bg-white rounded-xl overflow-x-auto h-[598px] shadow-lg  border-gray-100 p-6 space-y-4"
     >
       <div className="flex items-center justify-between mb-6">
         <motion.h2
@@ -90,7 +90,7 @@ export default function CourseManagement() {
                 <motion.div
                   key={course.id}
                   whileHover={{ scale: 1.05 }}
-                  className="group mb-6 p-5 bg-white rounded-lg border-2 border-gray-200 hover:border-indigo-400 transition-all shadow-md"
+                  className="group mb-6 p-5 bg-white rounded-lg  hover:border-indigo-400 transition-all shadow-lg"
                 >
                   <div className="flex flex-col md:flex-row items-start justify-between">
                     <div className="flex items-start space-x-4 flex-1">

@@ -114,7 +114,7 @@ export default function ContinueCourse() {
       </div>
       <div className="mt-6">
         <motion.button
-          className="w-full py-3 bg-orange-500 px-6 rounded-lg text-white font-medium"
+          className="w-full py-3 bg-red-400 hover:bg-red-500 transition px-6 rounded-lg text-white font-medium"
       
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

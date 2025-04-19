@@ -8,7 +8,7 @@ const CourseHeader = ({ course, color, courseAverage }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl p-8 mb-8 shadow-lg relative overflow-hidden"
+      className="rounded-xl p-4 mb-5 shadow-lg relative overflow-hidden"
       style={{ background: `linear-gradient(to bottom, ${color}, ${color}90)` }}
     >
       <div className="flex flex-col md:flex-row items-center justify-between">

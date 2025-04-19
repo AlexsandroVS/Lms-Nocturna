@@ -119,6 +119,7 @@ export function AuthProvider({ children }) {
     logout,
     isAdmin: currentUser?.role === "admin",
     isTeacher: currentUser?.role === "teacher",
+    isStudent: currentUser?.role === "student",
     api,
     loading, // Para indicar si aún estamos cargando los datos del usuario
   };

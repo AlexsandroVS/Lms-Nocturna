@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider } from "./context/AuthContext";
+import LandingPage from "./pages/LandingPage"
 import ProtectedRoute from "./ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -12,8 +13,8 @@ import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
 import ActivityPage from "./pages/ActivityPage";
 import FilesPage from "./pages/FilesPage";
+import AdminDashboard from "./admin/AdminDashboard";
 
-// eslint-disable-next-line react/prop-types
 const DashboardLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Navbar />
@@ -45,7 +46,9 @@ const App = () => {
             <Loader key="loader" />
           ) : (
             <Routes location={location} key={location.key}>
-              <Route path="/" element={<Login setIsLoading={setIsLoading} />} />
+              {/* <Route path="/" element={<LandingPage />} /> */}
+              <Route path="/login" element={<Login setIsLoading={setIsLoading} />} />
+
 
               {/* Rutas protegidas con DashboardLayout */}
               <Route element={<ProtectedRoute layout={DashboardLayout} />}>
@@ -123,6 +126,27 @@ const App = () => {
                   }
                 />
               </Route>
+
+              {/* Rutas de administrador */}
+              <Route
+                element={
+                  <ProtectedRoute roles={["admin"]} layout={DashboardLayout} />
+                }
+              >
+                <Route
+                  path="/admin"
+                  element={
+                    <motion.div
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
+                    >
+                      <AdminDashboard />
+                    </motion.div>
+                  }
+                />
+              </Route>
+
               {/* Redirección para rutas no encontradas */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

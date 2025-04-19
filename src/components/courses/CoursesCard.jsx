@@ -17,7 +17,7 @@ import {
   faTools,
   faBolt,
 } from "@fortawesome/free-solid-svg-icons";
-import { useAuth } from "../../context/AuthContext"; // Asegúrate de que esto esté importado correctamente
+import { useAuth } from "../../context/AuthContext";
 
 const ICON_MAP = {
   "book-open": faBookOpen,
@@ -39,8 +39,9 @@ const STATUS_CONFIG = {
 
 const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
   const navigate = useNavigate();
-  const { api, currentUser } = useAuth(); // Accedemos a currentUser desde useAuth
-  const [courseAverage, setCourseAverage] = useState(0); // Estado para el promedio del curso
+  const { api, currentUser } = useAuth();
+  const [courseAverage, setCourseAverage] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   const {
     id,
@@ -57,20 +58,17 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
     STATUS_CONFIG[status] || STATUS_CONFIG.draft;
   const iconFa = ICON_MAP[icon] || faBookOpen;
 
-  // Llamada a la API para obtener el promedio del curso
   useEffect(() => {
     const fetchCourseAverage = async () => {
-      if (!currentUser?.id) return; // Asegurarse de que currentUser.id está disponible
+      if (!currentUser?.id) return;
 
       try {
         const response = await api.get(
           `/grades/user/${currentUser.id}/course/${id}/averages`
         );
         if (response.data.success) {
-          const percentage = response.data.data.courseAverage * 5; // Convertimos la nota de 20 a porcentaje
-          setCourseAverage(percentage); // Establecer el promedio como porcentaje
-        } else {
-          console.error("No se pudo obtener el promedio del curso");
+          const percentage = response.data.data.courseAverage * 5;
+          setCourseAverage(percentage);
         }
       } catch (error) {
         console.error("Error al obtener el promedio del curso:", error);
@@ -90,21 +88,39 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
 
   return (
     <motion.div
-      className="group bg-white shadow-md rounded-xl p-4 hover:shadow-lg h-[350px] flex flex-col justify-between relative overflow-hidden cursor-pointer border border-gray-100"
+      className="group bg-white rounded-xl shadow-sm  border-gray-100 p-5 h-[360px] flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all hover:shadow-md hover:border-gray-200"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 300 }}
+      whileHover={{ y: -5 }}
+      transition={{ type: "spring", stiffness: 300, damping: 15 }}
       onClick={handleCardClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Floating icon background */}
+      <motion.div
+        className="absolute -right-10 -top-10 w-40 h-40 rounded-full opacity-10"
+        style={{ backgroundColor: color }}
+        animate={{
+          scale: isHovered ? 1.1 : 1,
+          opacity: isHovered ? 0.15 : 0.1,
+        }}
+        transition={{ duration: 0.3 }}
+      />
+
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-4 z-10">
         {/* Admin Actions */}
         {isAdmin && (
-          <div className="flex gap-2 z-10">
+          <motion.div 
+            className="flex gap-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isHovered ? 1 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
             <button
               onClick={(e) => handleAdminClick(e, onEdit)}
-              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
               aria-label="Editar curso"
             >
               <FontAwesomeIcon
@@ -114,7 +130,7 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
             </button>
             <button
               onClick={(e) => handleAdminClick(e, onDelete)}
-              className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
               aria-label="Eliminar curso"
             >
               <FontAwesomeIcon
@@ -122,13 +138,16 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
                 className="text-red-500 text-sm"
               />
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Course Icon */}
         <div
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-opacity-20 backdrop-blur-sm"
-          style={{ backgroundColor: `${color}30` }}
+          className="w-10 h-10 flex items-center justify-center rounded-lg backdrop-blur-sm shadow-sm"
+          style={{ 
+            backgroundColor: `${color}20`,
+            border: `1px solid ${color}30`
+          }}
         >
           <FontAwesomeIcon
             icon={iconFa}
@@ -139,73 +158,76 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden z-10">
         {/* Metadata */}
-        <div className="mb-3 space-y-2">
+        <div className="mb-4 space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
             {durationHours > 0 && (
-              <span className="flex items-center gap-1 text-gray-600">
-                <FontAwesomeIcon icon={faClock} className="text-[0.8em]" />
+              <span className="flex items-center gap-1 text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                <FontAwesomeIcon icon={faClock} className="text-[0.8em] opacity-70" />
                 {durationHours}h
               </span>
             )}
-            <span className={`${statusColor} px-2 py-1 rounded-full`}>
+            <span className={`${statusColor} px-2.5 py-1 rounded-full text-xs`}>
               {statusLabel}
             </span>
           </div>
-          <span className="text-xs text-gray-500 block">
+          <span className="text-xs text-gray-400 block">
             Creado por: {createdByName}
           </span>
         </div>
 
         {/* Title & Description */}
-        <div className="mb-4 space-y-2 flex-1 overflow-hidden">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 leading-snug">
+        <div className="mb-4 space-y-3 flex-1 overflow-hidden">
+          <h3 className="text-xl font-semibold text-gray-900 line-clamp-2 leading-snug">
             {title}
           </h3>
-          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+          <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">
             {description || "Descripción no disponible"}
           </p>
         </div>
 
         {/* Progress Section */}
-        <div className="border-t pt-4 space-y-3">
-  <div className="space-y-1">
-    <div className="flex justify-between text-xs text-gray-600 font-medium">
-      <span>Promedio</span>
-      <span>{Math.round(courseAverage)}%</span> {/* Mostramos el promedio como porcentaje */}
-    </div>
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              {/* <span className="text-xs font-medium text-gray-500">Progreso</span>
+              <span className="text-xs font-semibold" style={{ color }}>
+                {Math.round(courseAverage)}%
+              </span> */}
+            </div>
 
-    {/* Barra de progreso */}
-    <motion.div
-      className="w-full h-4 bg-gray-200 rounded-full overflow-hidden"
-      initial={{ width: 0 }}
-      animate={{ width: '100%' }} // La barra gris debe ocupar todo el ancho
-    >
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{
-          width: `${Math.round(courseAverage)}%`, // La barra de color cambia de tamaño dependiendo del porcentaje
-          backgroundColor: color,
-        }}
-      />
-    </motion.div>
-  </div>
+            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.round(courseAverage)}%` }}
+                transition={{ duration: 0.8, type: "spring" }}
+                style={{ backgroundColor: color }}
+              />
+            </div>
+          </div>
 
-  {/* Action Button */}
-  <button
-    className="w-full py-2 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm hover:opacity-90 transition-opacity"
-    style={{ backgroundColor: color }}
-    onClick={(e) => {
-      e.stopPropagation();
-      navigate(`/courses/${id}`);
-    }}
-  >
-    Ver curso
-    <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
-  </button>
-</div>
-
+          {/* Action Button */}
+          <motion.button
+            className="w-full py-2.5 px-4 rounded-lg text-white font-medium flex items-center justify-center gap-2 text-sm transition-all"
+            style={{ backgroundColor: color }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/courses/${id}`);
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            Ver curso
+            <motion.span
+              animate={{ x: isHovered ? 3 : 0 }}
+              transition={{ type: "spring", stiffness: 500 }}
+            >
+              <FontAwesomeIcon icon={faArrowRight} className="text-xs" />
+            </motion.span>
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );

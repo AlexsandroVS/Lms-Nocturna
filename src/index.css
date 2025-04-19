@@ -1,4 +1,29 @@
 @import "tailwindcss";
+:root {
+  /* Colores primarios */
+  --color-primary: 44, 62, 80; /* #2C3E50 - Azul oscuro */
+  --color-secondary: 52, 152, 219; /* #3498DB - Azul claro */
+  --color-accent: 231, 76, 60; /* #E74C3C - Rojo */
+  --color-success: 39, 174, 96; /* #27AE60 - Verde */
+  --color-warning: 243, 156, 18; /* #F39C12 - Amarillo/Naranja */
+
+  /* Escala de grises */
+  --color-gray-50: 248, 249, 250; /* #F8F9FA - Fondo claro */
+  --color-gray-100: 241, 243, 245;
+  --color-gray-200: 233, 236, 239;
+  --color-gray-300: 222, 226, 230;
+  --color-gray-400: 206, 212, 218;
+  --color-gray-500: 173, 181, 189;
+  --color-gray-600: 134, 142, 150;
+  --color-gray-700: 73, 80, 87;
+  --color-gray-800: 52, 58, 64;
+  --color-gray-900: 33, 37, 41;
+
+  /* Texto */
+  --color-text-primary: var(--color-gray-800);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-tertiary: var(--color-gray-500);
+}
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -18,6 +43,95 @@
   background: #555;
 }
 
-@theme{
-  --color-navbar: #DA1E1F;
+@theme {
+  /* Colores primarios */
+  --color-primary: 44 62 80; /* #  */
+  --color-secondary: 52 152 219; /* #3498DB */
+  --color-accent: 231 76 60; /* #E74C3C */
+  --color-success: 39 174 96; /* #27AE60 */
+  --color-warning: 243 156 18; /* #F39C12 */
+
+  /* Escala de grises */
+  --color-gray-50: 248 249 250; /* #F8F9FA */
+  --color-gray-100: 241 243 245;
+  --color-gray-200: 233 236 239;
+  --color-gray-300: 222 226 230;
+  --color-gray-400: 206 212 218;
+  --color-gray-500: 173 181 189;
+  --color-gray-600: 134 142 150;
+  --color-gray-700: 73 80 87;
+  --color-gray-800: 52 58 64;
+  --color-gray-900: 33 37 41;
+
+  /* Texto */
+  --color-text-primary: var(--color-gray-800);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-tertiary: var(--color-gray-500);
 }
+.typing-animation {
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+  vertical-align: bottom;
+}
+
+.typing-animation::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 0.05em;
+  background-color: #6802c1;
+  animation: blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink-caret {
+  from,
+  to {
+    background-color: transparent;
+  }
+  50% {
+    background-color: #6802c1;
+  }
+}
+
+/* Aplica la animación solo cuando el componente está montado */
+.mounted .typing-animation {
+  animation: typing 2s steps(40, end) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.letter-fade-in {
+  display: inline-block;
+  opacity: 0;
+  animation: fadeIn 0.3s forwards;
+}
+.scrollbar-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+

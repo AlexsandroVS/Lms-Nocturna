@@ -1,110 +1,104 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react"; // Asegúrate de importar useState y useEffect
-import CoursesCard from "../components/courses/CoursesCard";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGraduationCap } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../context/AuthContext";
-import CriticalDeadlines from "../components/dashboard/CriticalDeadlines";
-import RecentActivities from "../components/courses/RecentActivities";
+import UserCourseCard from "../components/courses/UserCourseCard";
 import AdminCourses from "../admin/Acourses/AdminCourses";
 
-const Courses = () => {
-  const { isAdmin, api } = useAuth(); // Obtener el estado de si es admin
-  const [courses, setCourses] = useState([]); // Para almacenar los cursos
-  const [loading, setLoading] = useState(true); // Para manejar la carga
-  const [error, setError] = useState(""); // Para manejar errores
+export default function Courses() {
+  const { currentUser, api, isAdmin } = useAuth();
+  const [userCourses, setUserCourses] = useState([]);
+  const [averages, setAverages] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Cargar los cursos para los usuarios normales
   useEffect(() => {
-    if (!isAdmin) {
-      const fetchCourses = async () => {
-        try {
-          const response = await api.get("/courses"); // Hacemos la llamada a la API
-          setCourses(response.data); 
-        } catch (err) {
-          setError("Error al obtener los cursos");
-          console.error(err);
-        } finally {
-          setLoading(false); // Cambiar el estado de carga
-        }
-      };
+    const fetchProgressAndCourses = async () => {
+      try {
+        const [progressRes, coursesRes] = await Promise.all([
+          api.get(`/progress/${currentUser.id}`),
+          api.get("/courses"),
+        ]);
 
-      fetchCourses();
+        const courseIds = Array.from(
+          new Set(progressRes.data.map((p) => p.CourseID))
+        );
+
+        const filteredCourses = coursesRes.data.filter((course) =>
+          courseIds.includes(course.id)
+        );
+
+        // Obtener promedios por cada curso
+        const averageResults = {};
+        await Promise.all(
+          filteredCourses.map(async (course) => {
+            try {
+              const res = await api.get(
+                `/grades/user/${currentUser.id}/course/${course.id}/averages`
+              );
+              averageResults[course.id] = res.data.data?.courseAverage || null;
+
+            } catch {
+              averageResults[course.id] = null;
+            }
+          })
+        );
+
+        setUserCourses(filteredCourses);
+        setAverages(averageResults);
+      } catch (err) {
+        console.error(err);
+        setError("Error al obtener los cursos.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentUser && !isAdmin) {
+      fetchProgressAndCourses();
     }
-  }, [isAdmin, api]); // Solo ejecutar si el estado de isAdmin cambia
+  }, [currentUser, api, isAdmin]);
+
+  if (isAdmin) return <AdminCourses />;
 
   return (
-    <div>
-      {isAdmin ? (
-        <AdminCourses /> // Mostrar AdminCourses si es admin
-      ) : (
-        <section className="px-4 py-8 max-w-7xl mx-auto">
-          <motion.div
-            className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <motion.h2
-              className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              Tus Cursos
-            </motion.h2>
-          </motion.div>
+    <div className="bg-gray-50 min-h-screen px-4 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-5xl mx-auto text-center mb-10"
+      >
+        <h1 className="text-4xl font-bold text-[#EC4899] mb-2">
+          <FontAwesomeIcon icon={faGraduationCap} className="mr-2" />
+          Mis Cursos
+        </h1>
+        <p className="text-gray-600">
+          Aquí puedes continuar tu aprendizaje en los cursos donde has comenzado.
+        </p>
+      </motion.div>
 
-          {loading ? (
-            <div className="text-center py-20 text-xl text-gray-500">Cargando cursos...</div>
-          ) : error ? (
-            <div className="text-center py-20 text-xl text-red-500">{error}</div>
-          ) : (
-            <AnimatePresence>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {courses.map((course, index) => (
-                  <motion.div
-                    key={course.id}
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: { opacity: 0, y: 20 },
-                      visible: {
-                        opacity: 1,
-                        y: 0,
-                        transition: {
-                          delay: index * 0.15,
-                          type: "spring",
-                          stiffness: 100,
-                          damping: 20,
-                        },
-                      },
-                    }}
-                    whileHover="hover"
-                  >
-                    <CoursesCard course={course} />
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <CriticalDeadlines />
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                >
-                
-                </motion.div>
-              </div>
-            </AnimatePresence>
-          )}
-        </section>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#EC4899]"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-600 text-lg">{error}</div>
+      ) : userCourses.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {userCourses.map((course) => (
+            <UserCourseCard
+              key={course.id}
+              course={course}
+              average={averages[course.id]}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 py-20">
+          Aún no tienes cursos iniciados.
+        </div>
       )}
     </div>
   );
-};
-
-export default Courses;
+}

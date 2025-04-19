@@ -1,173 +1,208 @@
-  /* eslint-disable no-unused-vars */
-  /* eslint-disable react/prop-types */
-  import { motion, AnimatePresence } from "framer-motion";
-  import { useState, useEffect, useRef } from "react";
-  import { useNavigate } from "react-router-dom";
-  import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-  import {
-    faEnvelope,
-    faLock,
-    faCheckCircle,
-    faTimesCircle,
-  } from "@fortawesome/free-solid-svg-icons";
-  import { useAuth } from "../context/AuthContext";
-  import fondoLogin from "../assets/fondo-login.jpg";
-  import logoRojo from "../assets/logo.png";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faEnvelope,
+  faLock,
+  faCheckCircle,
+  faTimesCircle,
+} from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "../context/AuthContext";
+import Typewriter from "../components/ui/Typewriter"
 
-  function Login() {
-    const navigate = useNavigate();
-    const { login, finalizeLogin, currentUser } = useAuth();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [status, setStatus] = useState({ type: null, message: "" });
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const timerRef = useRef();
+function Login() {
+  const navigate = useNavigate();
+  const { login, finalizeLogin, currentUser } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState({ type: null, message: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const timerRef = useRef();
 
-    useEffect(() => {
-      if (!email || !password) {
-        setStatus({ type: null, message: "" });
-        return;
+
+  useEffect(() => {
+    if (!email || !password) {
+      setStatus({ type: null, message: "" });
+      return;
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => checkCredentials(), 1000);
+    return () => clearTimeout(timerRef.current);
+  }, [email, password]);
+
+
+  const checkCredentials = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await login(email, password);
+      if (response.success) {
+        setStatus({ type: "success", message: "✅ Credenciales correctas" });
+        setTimeout(() => finalizeLogin(response.user), 1000);
+      } else {
+        setStatus({ type: "error", message: "❌ Credenciales incorrectas" });
       }
+    } catch {
+      setStatus({ type: "error", message: "⚠️ Error de conexión" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      if (timerRef.current) clearTimeout(timerRef.current);
+  useEffect(() => {
+    if (currentUser) navigate("/dashboard", { replace: true });
+  }, [currentUser, navigate]);
 
-      // Se ejecutará `checkCredentials` solo si el usuario deja de escribir por 1 segundo
-      timerRef.current = setTimeout(() => {
-        checkCredentials();
-      }, 1000);
+  // Animaciones simplificadas y coordinadas
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.3,
+      },
+    },
+  };
 
-      return () => clearTimeout(timerRef.current);
-    }, [email, password]);
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 150,
+        damping: 12,
+      },
+    },
+  };
 
-    const checkCredentials = async () => {
-      setIsSubmitting(true);
-    
-      try {
-        const response = await login(email, password);
-        if (response.success) {
-          setStatus({ type: "success", message: "✅ Credenciales correctas" });
+  return (
+    <div
+      className="min-h-screen flex overflow-hidden items-center justify-center bg-cover bg-center relative"
+      style={{
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(/img/fondo-login.jpg)`,
+      }}
+    >
+      {/* Efectos decorativos simplificados */}
+      <motion.div
+        className="absolute top-10 left-10 w-40 h-40 bg-[#6802C1]/30 rounded-full blur-3xl"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 1.5, delay: 0.2 }}
+      />
+      <motion.div
+        className="absolute bottom-10 right-10 w-60 h-60 bg-[#FB4141]/20 rounded-full blur-3xl"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 1.5, delay: 0.4 }}
+      />
 
-          // Esperar 1 segundo para mostrar el mensaje antes de actualizar el estado global
-          setTimeout(() => finalizeLogin(response.user), 1000);
-        } else {
-          setStatus({ type: "error", message: "❌ Credenciales incorrectas" });
-        }
-      } catch (error) {
-        setStatus({ type: "error", message: "⚠️ Error de conexión" });
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    useEffect(() => {
-      if (currentUser) {
-        navigate("/dashboard", { replace: true });
-      }
-    }, [currentUser, navigate]);
-
-
-    const getInputStyle = () => {
-      if (!email || !password) return "";
-      return status.type === "error"
-        ? "ring-2 ring-red-500 ring-opacity-50"
-        : status.type === "success"
-        ? "ring-2 ring-green-500 ring-opacity-50"
-        : "";
-    };
-
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center bg-cover bg-center relative overflow-hidden"
-        style={{
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${fondoLogin})`,
-        }}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-white/10 backdrop-blur-md border border-white/20 px-10 py-24 rounded-3xl shadow-2xl w-full max-w-md z-10"
       >
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-black/40 backdrop-blur-sm border border-white/10 relative p-8 rounded-2xl shadow-2xl w-96 min-h-[480px] flex flex-col justify-center"
+          className="flex flex-col items-center mb-10"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
         >
-          <div className="flex justify-center mb-10">
-            <img src={logoRojo} alt="Logo" className="h-24 rounded-xl" />
+          <motion.h2
+            variants={itemVariants}
+            className="text-2xl font-bold text-white text-center"
+          >
+            Bienvenido a <br />
+            <span translate="no" className="text-[#6802C1] text-4xl tracking-wide block mt-2 drop-shadow-[0_2px_2px_rgba(1,1,0,0.6)]">
+            <Typewriter 
+              text="Universidad Continental" 
+              delay={20} 
+              className="whitespace-pre"
+            />
+          </span>
+          </motion.h2>
+          <motion.div
+            className="h-1 w-24 bg-[#6802C1] mt-4 rounded-full"
+            variants={itemVariants}
+          />
+        </motion.div>
+
+        {/* Resto del código permanece igual */}
+        <form className="space-y-8">
+          <AnimatePresence>
+            {status.message && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className={`p-3 rounded-lg flex items-center gap-2 text-sm font-medium shadow-sm ${
+                  status.type === "success"
+                    ? "bg-green-500/20 border border-green-500 text-green-200"
+                    : "bg-[#FB4141]/20 border border-[#FB4141] text-[#FB4141]"
+                }`}
+              >
+                <FontAwesomeIcon
+                  icon={
+                    status.type === "success" ? faCheckCircle : faTimesCircle
+                  }
+                  className="text-lg"
+                />
+                {status.message}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="relative">
+            <div className="flex rounded-xl overflow-hidden shadow-lg hover:ring-2 hover:ring-[#6802C1]/60 transition-all">
+              <div className="w-14 bg-[#6802C1] flex items-center justify-center">
+                <FontAwesomeIcon
+                  icon={faEnvelope}
+                  className="text-white text-xl"
+                />
+              </div>
+              <input
+                type="email"
+                placeholder="Correo institucional"
+                className="flex-1 px-5 py-4 bg-[#DFE1E0] text-black font-medium placeholder-[#5A5A5A] focus:outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
           </div>
 
-          <form className="space-y-8">
-            <AnimatePresence>
-              {status.message && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className={`p-3 rounded-lg flex items-center gap-2 ${
-                    status.type === "success"
-                      ? "bg-green-500/20 border border-green-500"
-                      : "bg-red-500/20 border border-red-500"
-                  }`}
-                >
-                  <FontAwesomeIcon
-                    icon={status.type === "success" ? faCheckCircle : faTimesCircle}
-                    className={`text-xl ${
-                      status.type === "success" ? "text-green-500" : "text-red-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm ${
-                      status.type === "success" ? "text-green-200" : "text-red-200"
-                    }`}
-                  >
-                    {status.message}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Email Input */}
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className={`flex rounded-xl overflow-hidden shadow-sm ${getInputStyle()}`}>
-                <div className="w-14 bg-[#d62828] flex items-center justify-center">
-                  <FontAwesomeIcon icon={faEnvelope} className="text-white text-xl" />
-                </div>
-                <input
-                  type="email"
-                  placeholder="Correo electrónico"
-                  className="flex-1 px-4 py-3 bg-white focus:outline-none"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting}
-                  autoFocus
-                />
+          <div className="relative">
+            <div className="flex rounded-xl overflow-hidden shadow-lg hover:ring-2 hover:ring-[#6802C1]/60 transition-all">
+              <div className="w-14 bg-[#6802C1] flex items-center justify-center">
+                <FontAwesomeIcon icon={faLock} className="text-white text-xl" />
               </div>
-            </motion.div>
+              <input
+                type="password"
+                placeholder="Contraseña"
+                className="flex-1 px-5 py-4 bg-[#DFE1E0] text-black font-medium placeholder-[#5A5A5A] focus:outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
 
-            {/* Password Input */}
-            <motion.div
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              <div className={`flex rounded-xl overflow-hidden shadow-sm ${getInputStyle()}`}>
-                <div className="w-14 bg-[#d62828] flex items-center justify-center">
-                  <FontAwesomeIcon icon={faLock} className="text-white text-xl" />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Contraseña"
-                  className="flex-1 px-4 py-3 bg-white focus:outline-none"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </motion.div>
-          </form>
-        </motion.div>
-      </div>
-    );
-  }
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            type="button"
+            onClick={checkCredentials}
+            disabled={isSubmitting}
+            className="w-full py-4 bg-[#6802C1] text-white font-semibold text-lg rounded-xl shadow-md hover:bg-[#5701a3] transition-colors"
+          >
+            {isSubmitting ? "Ingresando..." : "Iniciar sesión"}
+          </motion.button>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
 
-  export default Login;
+export default Login;

@@ -8,9 +8,12 @@ import ProgressSidebar from "../components/courses/ProgressSidebar";
 import { calculateCourseProgress } from "../utils/courseUtils";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { CreateModuleModal } from "../admin/modals/Modules/CreateModuleModal";
+import { CreateModuleModal } from "../admin/modals/CreateModuleModal";
 import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
+
+// Importa tu componente de detalles de actividad en panel:
+import ActivityDetailsPanel from "../admin/modals/Activities/ActivityDetailsModal";
 
 const CoursePage = () => {
   const { api, currentUser } = useAuth();
@@ -19,6 +22,10 @@ const CoursePage = () => {
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
+
+  // NUEVO: actividad seleccionada para mostrar detalles en la columna izquierda
+  const [selectedActivity, setSelectedActivity] = useState(null);
+
   const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
   const [showEditModuleModal, setShowEditModuleModal] = useState(false);
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
@@ -29,7 +36,9 @@ const CoursePage = () => {
     try {
       const userId = currentUser?.id;
       if (!userId) return;
-      const response = await api.get(`/grades/user/${userId}/course/${id}/averages`);
+      const response = await api.get(
+        `/grades/user/${userId}/course/${id}/averages`
+      );
       setAverages(response.data.data); // Guardar solo la data del response
     } catch (err) {
       console.error("Error al obtener los promedios:", err);
@@ -42,16 +51,16 @@ const CoursePage = () => {
       const modulesResp = await api.get(`/courses/${id}/modules`);
       const modulesWithActivities = modulesResp.data?.map((module) => ({
         ...module,
-        totalActivities: module.activities ? module.activities.length : 0, // Añadir el total de actividades
+        totalActivities: module.activities ? module.activities.length : 0,
       }));
 
-      console.log(currentUser.role)
+      console.log(currentUser.role);
       // Filtrar módulos según el rol del usuario
       if (currentUser?.role !== "admin") {
-        // Filtrar solo los módulos no bloqueados si no es admin
-        setModules(modulesWithActivities.filter(module => module.isLocked === 0));
+        // Filtrar solo los módulos no bloqueados
+        setModules(modulesWithActivities.filter((m) => m.isLocked === 0));
       } else {
-        // Los administradores ven todos los módulos
+        // Admin ve todos los módulos
         setModules(modulesWithActivities);
       }
     } catch (err) {
@@ -66,13 +75,12 @@ const CoursePage = () => {
 
     const fetchData = async () => {
       try {
-        // eslint-disable-next-line no-unused-vars
         const [courseResp, modulesResp] = await Promise.all([
           api.get(`/courses/${id}`, { signal: controller.signal }),
           api.get(`/courses/${id}/modules`, { signal: controller.signal }),
         ]);
         setCourse(courseResp.data);
-        fetchModules(); // Filtrar módulos según el rol del usuario
+        fetchModules(); // Carga y filtra módulos
         fetchAverages(); // Obtener promedios
       } catch (err) {
         if (!controller.signal.aborted) {
@@ -85,13 +93,13 @@ const CoursePage = () => {
     return () => controller.abort();
   }, [id, api, fetchModules, fetchAverages]);
 
-  // Función para convertir la calificación a porcentaje
+  // Convertir calificación a porcentaje
   const convertToPercentage = (score) => {
     if (score === "N/A") return score;
     return ((score / 20) * 100).toFixed(0);
   };
 
-  // Crear nuevo módulo
+  // Crear módulo
   const handleCreateModule = useCallback(
     async (moduleData) => {
       try {
@@ -111,7 +119,10 @@ const CoursePage = () => {
       if (!selectedModule?.ModuleID) return;
 
       try {
-        await api.put(`/courses/${id}/modules/${selectedModule.ModuleID}`, moduleData);
+        await api.put(
+          `/courses/${id}/modules/${selectedModule.ModuleID}`,
+          moduleData
+        );
         await fetchModules();
         setShowEditModuleModal(false);
       } catch (err) {
@@ -120,16 +131,20 @@ const CoursePage = () => {
     },
     [api, id, selectedModule, fetchModules]
   );
+
+  // Bloqueo/desbloqueo en memoria
   const handleLockModule = useCallback((moduleId, newStatus) => {
-    setModules(prev => prev.map(module => 
-      module.ModuleID === moduleId ? { ...module, isLocked: newStatus } : module
-    ));
+    setModules((prev) =>
+      prev.map((m) =>
+        m.ModuleID === moduleId ? { ...m, isLocked: newStatus } : m
+      )
+    );
   }, []);
+
   // Eliminar módulo
   const handleDeleteModule = useCallback(
     async (moduleId) => {
       if (!moduleId) return;
-
       try {
         await api.delete(`/courses/${id}/modules/${moduleId}`);
         await fetchModules();
@@ -141,6 +156,7 @@ const CoursePage = () => {
     [api, id, fetchModules]
   );
 
+  // Calcular progreso
   const courseWithProgress = useMemo(() => {
     return course ? calculateCourseProgress({ ...course, modules }) : null;
   }, [course, modules]);
@@ -148,7 +164,12 @@ const CoursePage = () => {
   const courseColor = courseWithProgress?.color;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto p-8">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-7l mx-auto p-1"
+    >
+      {/* Header del curso */}
       {courseWithProgress && (
         <CourseHeader
           course={courseWithProgress}
@@ -158,7 +179,7 @@ const CoursePage = () => {
         />
       )}
 
-      {/* Solo mostrar el botón si el usuario es admin */}
+      {/* Botón para crear módulo (solo admin) */}
       {currentUser?.role === "admin" && (
         <div className="mb-4 flex justify-end">
           <button
@@ -171,12 +192,28 @@ const CoursePage = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
+      <div className="flex flex-row gap-4">
+        {/* Columna Izquierda: Detalles de la actividad */}
+        <div className="basis-2/3">
+          {selectedActivity ? (
+            <ActivityDetailsPanel
+              activity={selectedActivity}
+              courseId={id}
+              moduleId={selectedActivity?.ModuleID}
+            />
+          ) : (
+            <div className="p-4 bg-white text-gray-500 rounded-xl shadow">
+              Selecciona una actividad para ver sus detalles
+            </div>
+          )}
+        </div>
+
+        {/* Columna Derecha: Lista de módulos y actividades */}
+        <div className="basis-1/3">
           <motion.h2
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="text-2xl font-bold mb-6 flex items-center"
+            className="text-2xl font-bold mb-6 flex justify-center"
           >
             Módulos del Curso
           </motion.h2>
@@ -190,21 +227,17 @@ const CoursePage = () => {
               setShowEditModuleModal(true);
             }}
             onDeleteModule={(moduleId) => {
-              setSelectedModule(modules.find((m) => m.ModuleID === moduleId));
+              const foundModule = modules.find((m) => m.ModuleID === moduleId);
+              setSelectedModule(foundModule);
               setShowDeleteModuleModal(true);
             }}
+            // IMPORTANTE: callback para mostrar detalles en la izquierda
+            onShowActivityDetail={(activity) => setSelectedActivity(activity)}
           />
         </div>
-
-        {courseWithProgress && (
-          <ProgressSidebar
-            course={courseWithProgress}
-            color={courseColor}
-            courseAverage={convertToPercentage(averages?.courseAverage)}
-          />
-        )}
       </div>
 
+      {/* Modales de crear/editar/eliminar módulo */}
       {showCreateModuleModal && (
         <CreateModuleModal
           courseId={Number(id)}
@@ -212,7 +245,6 @@ const CoursePage = () => {
           onSave={handleCreateModule}
         />
       )}
-
       {showEditModuleModal && selectedModule && (
         <EditModuleModal
           module={selectedModule}
@@ -220,7 +252,6 @@ const CoursePage = () => {
           onSave={handleEditModule}
         />
       )}
-
       {showDeleteModuleModal && selectedModule && (
         <DeleteModuleModal
           module={selectedModule}
