@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTimes,
   faSave,
+  faSpinner,
   faExclamationTriangle,
   faFile,
   faFilePdf,
@@ -19,14 +20,19 @@ const CreateActivityModal = ({ onClose, onSave }) => {
     type: "",
     file: null,
     deadline: "",
+    maxAttempts: 1,
   });
-
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData({
+      ...formData,
+      [name]: name === "maxAttempts" ? parseInt(value, 10) || 1 : value,
+    });
   };
+  
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -40,8 +46,9 @@ const CreateActivityModal = ({ onClose, onSave }) => {
             "application/pdf",
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
           ];
-          errorMessage = "Solo se permiten documentos PDF y Word";
+          errorMessage = "Solo se permiten documentos PDF, Word y PPTX";
           break;
         case "Video":
           allowedTypes = [
@@ -55,8 +62,13 @@ const CreateActivityModal = ({ onClose, onSave }) => {
           errorMessage = "Formatos válidos: MP4, AVI, MOV, WebM, MKV";
           break;
         case "Tarea":
-          allowedTypes = ["application/pdf", "text/plain"];
-          errorMessage = "Solo se permiten PDF o archivos de texto (.txt)";
+          allowedTypes = [
+            "application/pdf",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          ];
+          errorMessage = "Solo se permiten documentos PDF, Word y PPTX";
           break;
         default:
           allowedTypes = [];
@@ -78,7 +90,7 @@ const CreateActivityModal = ({ onClose, onSave }) => {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
       setError("El título y la descripción son obligatorios.");
       return;
@@ -92,8 +104,25 @@ const CreateActivityModal = ({ onClose, onSave }) => {
       return;
     }
     setError("");
-    onSave(formData);
+  
+    try {
+      setLoading(true); // 👉 Aquí empieza el loading
+  
+      const success = await onSave(formData); // Llama a la función de guardado
+  
+      if (success) {
+        onClose(); // Solo cerramos si fue exitoso
+      } else {
+        setError("Hubo un error al crear la actividad. Intenta nuevamente.");
+      }
+    } catch (error) {
+      console.error("Error creando actividad:", error);
+      setError("Error inesperado al crear la actividad.");
+    } finally {
+      setLoading(false); // 👉 Aquí termina el loading
+    }
   };
+  
 
   const getFileIcon = () => {
     switch (formData.type) {
@@ -230,7 +259,7 @@ const CreateActivityModal = ({ onClose, onSave }) => {
                 className="hidden"
                 accept={
                   formData.type === "Documento"
-                    ? ".pdf,.doc,.docx"
+                    ? ".pdf,.doc,.docx,.pptx"
                     : formData.type === "Video"
                     ? ".mp4,.avi,.mov,.webm,.mkv"
                     : formData.type === "Tarea"
@@ -269,7 +298,19 @@ const CreateActivityModal = ({ onClose, onSave }) => {
               </div>
             </label>
           </div>
-
+          <div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2">
+    Intentos máximos de entrega
+  </label>
+  <input
+    type="number"
+    name="maxAttempts"
+    min="1"
+    value={formData.maxAttempts}
+    onChange={handleChange}
+    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+</div>
           {/* Fecha Límite */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -297,12 +338,26 @@ const CreateActivityModal = ({ onClose, onSave }) => {
           </motion.button>
           <motion.button
             onClick={handleSubmit}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2"
+            whileHover={{ scale: loading ? 1 : 1.05 }} // Desactivar hover si está cargando
+            whileTap={{ scale: loading ? 1 : 0.95 }}
+            disabled={loading}
+            className={`px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold transition-colors w-full ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
           >
-            <FontAwesomeIcon icon={faSave} />
-            Crear Actividad
+            {loading ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin />
+                Creando...
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faSave} />
+                Crear Actividad
+              </>
+            )}
           </motion.button>
         </div>
       </motion.div>

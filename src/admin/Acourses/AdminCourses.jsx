@@ -107,7 +107,7 @@ const AdminCoursesDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[] p-4 sm:p-6 lg:p-8">
       {/* Modales */}
       {showCreateModal && (
         <CreateCourseModal
@@ -136,10 +136,10 @@ const AdminCoursesDashboard = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        className="mb-8 flex  flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl  font-bold text-gray-900 sm:text-3xl">
             Panel de Cursos
           </h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">

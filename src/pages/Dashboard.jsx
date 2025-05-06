@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "../components/layout/Header";
@@ -6,7 +6,12 @@ import CourseCard from "../components/dashboard/CourseCard";
 import AdminDashboard from "../admin/AdminDashboard";
 import Avatar from "../components/ui/Avatar";
 import { useNavigate } from "react-router-dom";
-import { FiSearch, FiChevronDown } from "react-icons/fi";
+import {
+  FiSearch,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 
 export default function Dashboard() {
   const { currentUser, isAdmin, loading, api } = useAuth();
@@ -15,8 +20,9 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const categoryRefs = useRef({});
   const navigate = useNavigate();
-  
+
   const banners = [
     "/img/banner-cursos.jpg",
     "/img/banner-cursos2.jpg",
@@ -53,18 +59,20 @@ export default function Dashboard() {
       fetchCourses();
     }
   }, [currentUser, api]);
+
   const uniqueCategories = [
     "all",
-    ...Array.from(new Set(courses.map((c) => c.category).filter(Boolean))), // Faltaba este paréntesis
+    ...Array.from(new Set(courses.map((c) => c.category).filter(Boolean))),
   ];
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
-    course.title.toLowerCase().includes(search.toLowerCase()) ||
-    (course.category || "").toLowerCase().includes(search.toLowerCase());
-  
+      course.title.toLowerCase().includes(search.toLowerCase()) ||
+      (course.category || "").toLowerCase().includes(search.toLowerCase());
+
     const matchesCategory =
       selectedCategory === "all" || course.category === selectedCategory;
+
     return matchesSearch && matchesCategory;
   });
 
@@ -74,6 +82,14 @@ export default function Dashboard() {
     acc[category].push(course);
     return acc;
   }, {});
+
+  const scrollSlider = (category, direction) => {
+    const container = categoryRefs.current[category];
+    if (container) {
+      const scrollAmount = direction === "left" ? -300 : 300;
+      container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   if (loading) {
     return (
@@ -91,9 +107,7 @@ export default function Dashboard() {
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-xl text-red-600">
-          Error: No se pudo cargar el usuario.
-        </p>
+        <p className="text-xl text-red-600">Error: No se pudo cargar el usuario.</p>
       </div>
     );
   }
@@ -116,8 +130,8 @@ export default function Dashboard() {
             <Avatar user={currentUser} size="lg" />
             <div>
               <h2 className="text-lg text-gray-500 font-medium">{getGreeting()}</h2>
-              <motion.h1 
-                className="text-2xl text-[#003049] font-bold text-gradient bg-gradient-to-r from-primary to-secondary bg-clip-text "
+              <motion.h1
+                className="text-2xl text-[#003049] font-bold text-gradient bg-gradient-to-r from-primary to-secondary bg-clip-text"
                 whileHover={{ scale: 1.02 }}
               >
                 Bienvenido de nuevo, {currentUser.name}
@@ -165,8 +179,8 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* Filtros - Versión Mejorada */}
-          <motion.div 
+          {/* Filtros */}
+          <motion.div
             className="flex flex-col md:flex-row md:items-center justify-between gap-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -188,10 +202,18 @@ export default function Dashboard() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center justify-between w-full px-4 py-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <span>{selectedCategory === "all" ? "Todas las categorías" : selectedCategory}</span>
-                <FiChevronDown className={`ml-2 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : ""}`} />
+                <span>
+                  {selectedCategory === "all"
+                    ? "Todas las categorías"
+                    : selectedCategory}
+                </span>
+                <FiChevronDown
+                  className={`ml-2 transition-transform duration-300 ${
+                    isDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
               </button>
-              
+
               <AnimatePresence>
                 {isDropdownOpen && (
                   <motion.div
@@ -209,7 +231,9 @@ export default function Dashboard() {
                           setIsDropdownOpen(false);
                         }}
                         className={`w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors ${
-                          selectedCategory === cat ? "bg-primary/10 text-primary" : ""
+                          selectedCategory === cat
+                            ? "bg-primary/10 text-primary"
+                            : ""
                         }`}
                       >
                         {cat === "all" ? "Todas las categorías" : cat}
@@ -235,14 +259,43 @@ export default function Dashboard() {
                   <span className="w-2 h-6 bg-primary rounded-full mr-2"></span>
                   {category}
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {list.map((course) => (
-                    <CourseCard
-                      key={course.id}
-                      course={course}
-                      onClick={() => navigate(`/courses/${course.id}`)}
-                    />
-                  ))}
+
+                <div className="relative">
+                  {list.length >= 5 && (
+                    <>
+                      <button
+                        onClick={() => scrollSlider(category, "left")}
+                        className="absolute z-10 -left-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
+                      >
+                        <FiChevronLeft className="text-xl" />
+                      </button>
+                      <button
+                        onClick={() => scrollSlider(category, "right")}
+                        className="absolute z-10 -right-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
+                      >
+                        <FiChevronRight className="text-xl" />
+                      </button>
+                    </>
+                  )}
+
+                  <div
+                    ref={(el) => {
+                      if (el) categoryRefs.current[category] = el;
+                    }}
+                    className="flex gap-4 overflow-x-auto scrollbar-hidden scroll-smooth px-2 pb-2"
+                  >
+                    {list.map((course) => (
+                      <div
+                        className="min-w-[250px] max-w-[300px] flex-shrink-0"
+                        key={course.id}
+                      >
+                        <CourseCard
+                          course={course}
+                          onClick={() => navigate(`/courses/${course.id}`)}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -1,19 +1,23 @@
+/* eslint-disable react/prop-types */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/layout/Navbar";
 import CourseHeader from "../components/courses/CourseHeader";
 import ModuleList from "../components/module/ModuleList";
-import ProgressSidebar from "../components/courses/ProgressSidebar";
+import ActivityDetailsPanel from "../admin/modals/Activities/ActivityDetailsModal";
 import { calculateCourseProgress } from "../utils/courseUtils";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { CreateModuleModal } from "../admin/modals/CreateModuleModal";
 import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
-
-// Importa tu componente de detalles de actividad en panel:
-import ActivityDetailsPanel from "../admin/modals/Activities/ActivityDetailsModal";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faChevronLeft,
+  faPlus,
+  faChevronRight,
+  faGripLinesVertical,
+} from "@fortawesome/free-solid-svg-icons";
 
 const CoursePage = () => {
   const { api, currentUser } = useAuth();
@@ -22,16 +26,15 @@ const CoursePage = () => {
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState(null);
-
-  // NUEVO: actividad seleccionada para mostrar detalles en la columna izquierda
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [averages, setAverages] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
   const [showEditModuleModal, setShowEditModuleModal] = useState(false);
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
-  const [averages, setAverages] = useState(null);
+  const [isPanelVisible, setIsPanelVisible] = useState(true);
 
-  // Función para obtener los promedios
   const fetchAverages = useCallback(async () => {
     try {
       const userId = currentUser?.id;
@@ -39,227 +42,305 @@ const CoursePage = () => {
       const response = await api.get(
         `/grades/user/${userId}/course/${id}/averages`
       );
-      setAverages(response.data.data); // Guardar solo la data del response
+      setAverages(response.data.data);
     } catch (err) {
-      console.error("Error al obtener los promedios:", err);
+      console.error("Error al obtener promedios:", err);
     }
   }, [api, currentUser?.id, id]);
 
-  // Función para cargar módulos
   const fetchModules = useCallback(async () => {
     try {
-      const modulesResp = await api.get(`/courses/${id}/modules`);
-      const modulesWithActivities = modulesResp.data?.map((module) => ({
-        ...module,
-        totalActivities: module.activities ? module.activities.length : 0,
+      const response = await api.get(`/courses/${id}/modules`);
+      const data = response.data.map((m) => ({
+        ...m,
+        totalActivities: m.activities?.length || 0,
       }));
-
-      console.log(currentUser.role);
-      // Filtrar módulos según el rol del usuario
       if (currentUser?.role !== "admin") {
-        // Filtrar solo los módulos no bloqueados
-        setModules(modulesWithActivities.filter((m) => m.isLocked === 0));
+        setModules(data.filter((m) => m.isLocked === 0));
       } else {
-        // Admin ve todos los módulos
-        setModules(modulesWithActivities);
+        setModules(data);
       }
     } catch (err) {
       console.error("Error al cargar módulos:", err);
-      setModules([]);
+    } finally {
+      setLoading(false);
     }
-  }, [api, id, currentUser.role]);
+  }, [api, id, currentUser?.role]);
 
-  // Cargar datos del curso, módulos y promedios al montar
   useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
-        const [courseResp, modulesResp] = await Promise.all([
-          api.get(`/courses/${id}`, { signal: controller.signal }),
-          api.get(`/courses/${id}/modules`, { signal: controller.signal }),
-        ]);
+        setLoading(true);
+        const courseResp = await api.get(`/courses/${id}`);
         setCourse(courseResp.data);
-        fetchModules(); // Carga y filtra módulos
-        fetchAverages(); // Obtener promedios
+        await fetchModules();
+        await fetchAverages();
       } catch (err) {
-        if (!controller.signal.aborted) {
-          console.error("Error al cargar curso o módulos:", err);
-        }
+        console.error("Error al cargar curso:", err);
+      } finally {
+        setLoading(false);
       }
     };
-
-    fetchData();
-    return () => controller.abort();
+    loadData();
   }, [id, api, fetchModules, fetchAverages]);
 
-  // Convertir calificación a porcentaje
-  const convertToPercentage = (score) => {
-    if (score === "N/A") return score;
-    return ((score / 20) * 100).toFixed(0);
+  const handleCreateModule = async (data) => {
+    try {
+      await api.post(`/courses/${id}/modules`, data);
+      await fetchModules();
+      setShowCreateModuleModal(false);
+    } catch (err) {
+      console.error("Error al crear módulo:", err);
+    }
   };
 
-  // Crear módulo
-  const handleCreateModule = useCallback(
-    async (moduleData) => {
-      try {
-        await api.post(`/courses/${id}/modules`, moduleData);
-        await fetchModules();
-        setShowCreateModuleModal(false);
-      } catch (err) {
-        console.error("Error al crear módulo:", err);
-      }
-    },
-    [api, id, fetchModules]
-  );
+  const handleEditModule = async (data) => {
+    if (!selectedModule?.ModuleID) return;
+    try {
+      await api.put(`/courses/${id}/modules/${selectedModule.ModuleID}`, data);
+      await fetchModules();
+      setShowEditModuleModal(false);
+    } catch (err) {
+      console.error("Error al editar módulo:", err);
+    }
+  };
 
-  // Editar módulo
-  const handleEditModule = useCallback(
-    async (moduleData) => {
-      if (!selectedModule?.ModuleID) return;
+  const handleDeleteModule = async (moduleId) => {
+    try {
+      await api.delete(`/courses/${id}/modules/${moduleId}`);
+      await fetchModules();
+      setShowDeleteModuleModal(false);
+    } catch (err) {
+      console.error("Error al eliminar módulo:", err);
+    }
+  };
 
-      try {
-        await api.put(
-          `/courses/${id}/modules/${selectedModule.ModuleID}`,
-          moduleData
-        );
-        await fetchModules();
-        setShowEditModuleModal(false);
-      } catch (err) {
-        console.error("Error al editar módulo:", err);
-      }
-    },
-    [api, id, selectedModule, fetchModules]
-  );
-
-  // Bloqueo/desbloqueo en memoria
-  const handleLockModule = useCallback((moduleId, newStatus) => {
+  const handleLockModule = (moduleId, newStatus) => {
     setModules((prev) =>
       prev.map((m) =>
         m.ModuleID === moduleId ? { ...m, isLocked: newStatus } : m
       )
     );
-  }, []);
+  };
 
-  // Eliminar módulo
-  const handleDeleteModule = useCallback(
-    async (moduleId) => {
-      if (!moduleId) return;
-      try {
-        await api.delete(`/courses/${id}/modules/${moduleId}`);
-        await fetchModules();
-        setShowDeleteModuleModal(false);
-      } catch (err) {
-        console.error("Error al eliminar módulo:", err);
-      }
-    },
-    [api, id, fetchModules]
-  );
-
-  // Calcular progreso
   const courseWithProgress = useMemo(() => {
     return course ? calculateCourseProgress({ ...course, modules }) : null;
   }, [course, modules]);
 
   const courseColor = courseWithProgress?.color;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-7l mx-auto p-1"
-    >
-      {/* Header del curso */}
-      {courseWithProgress && (
-        <CourseHeader
-          course={courseWithProgress}
-          color={courseColor}
-          title={course.title}
-          courseAverage={convertToPercentage(averages?.courseAverage)}
+  const togglePanelVisibility = () => {
+    setIsPanelVisible(!isPanelVisible);
+  };
+
+  if (loading) {
+    return (
+      <div className="w-screen min-h-screen  pt-[96px] flex items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full"
         />
-      )}
+      </div>
+    );
+  }
 
-      {/* Botón para crear módulo (solo admin) */}
-      {currentUser?.role === "admin" && (
-        <div className="mb-4 flex justify-end">
-          <button
-            className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors flex items-center gap-2"
-            onClick={() => setShowCreateModuleModal(true)}
-          >
-            <FontAwesomeIcon icon={faPlus} />
-            Crear Módulo
-          </button>
-        </div>
-      )}
+  return (
+    <div className="w-screen min-h-screen bg-white pt-[96px] scrollbar-hidden overflow-hidden">
+      <Navbar />
 
-      <div className="flex flex-row gap-4">
-        {/* Columna Izquierda: Detalles de la actividad */}
-        <div className="basis-2/3">
-          {selectedActivity ? (
-            <ActivityDetailsPanel
-              activity={selectedActivity}
-              courseId={id}
-              moduleId={selectedActivity?.ModuleID}
-            />
-          ) : (
-            <div className="p-4 bg-white text-gray-500 rounded-xl shadow">
-              Selecciona una actividad para ver sus detalles
-            </div>
-          )}
-        </div>
-
-        {/* Columna Derecha: Lista de módulos y actividades */}
-        <div className="basis-1/3">
-          <motion.h2
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="text-2xl font-bold mb-6 flex justify-center"
-          >
-            Módulos del Curso
-          </motion.h2>
-
-          <ModuleList
-            modules={modules}
+      {courseWithProgress && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="px-6"
+        >
+          <CourseHeader
+            course={courseWithProgress}
             color={courseColor}
-            onLockModule={handleLockModule}
-            onEditModule={(module) => {
-              setSelectedModule(module);
-              setShowEditModuleModal(true);
-            }}
-            onDeleteModule={(moduleId) => {
-              const foundModule = modules.find((m) => m.ModuleID === moduleId);
-              setSelectedModule(foundModule);
-              setShowDeleteModuleModal(true);
-            }}
-            // IMPORTANTE: callback para mostrar detalles en la izquierda
-            onShowActivityDetail={(activity) => setSelectedActivity(activity)}
+            title={course.title}
+            courseAverage={((averages?.courseAverage || 0) * 5).toFixed(0)}
           />
-        </div>
+        </motion.div>
+      )}
+
+      <div className="flex flex-row gap-6 mt-6 px-6 pb-10 max-h-[calc(120vh-160px)] relative">
+        {/* Detalle de Actividad */}
+        <motion.div
+          layout
+          className={`transition-all duration-300 overflow-y-auto scrollbar-hidden ${
+            isPanelVisible ? "w-[calc(100%-384px)]" : "w-full"
+          }`}
+        >
+          <AnimatePresence mode="wait">
+            {selectedActivity ? (
+              <motion.div
+                key="activity-details"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ActivityDetailsPanel
+                  activity={selectedActivity}
+                  courseId={id}
+                  moduleId={selectedActivity.ModuleID}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="empty-state"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white p-6 rounded-xl  text-gray-500 h-full flex items-center justify-center"
+              >
+                <div className="text-center">
+                  <p className="text-lg mb-2">
+                    Selecciona una actividad para comenzar
+                  </p>
+                  {!isPanelVisible && (
+                    <button
+                      onClick={togglePanelVisibility}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <FontAwesomeIcon icon={faChevronRight} />
+                      <span>Mostrar módulos</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Panel lateral */}
+        <AnimatePresence>
+          {isPanelVisible && (
+            <motion.div
+              key="modules-panel"
+              initial={{ x: 50, opacity: 0 }}
+              animate={{
+                x: 0,
+                opacity: 1,
+                transition: { type: "spring", stiffness: 300, damping: 20 },
+              }}
+              exit={{
+                x: 50,
+                opacity: 0,
+                transition: { duration: 0.2 },
+              }}
+              transition={{ duration: 0.3 }}
+              className="w-[360px] overflow-y-auto scrollbar-hidden bg-white rounded-xl shadow p-4 pt-0 flex-shrink-0 border-gray-200 relative"
+            >
+              <div className="flex items-center justify-between mb-4">
+                {/* Título y botón para crear */}
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Módulos del Curso
+                  </h2>
+                  {currentUser?.role === "admin" && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowCreateModuleModal(true)}
+                      className="flex items-center gap-2 px-3 py-3 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+                      title="Agregar nuevo módulo"
+                    >
+                      <FontAwesomeIcon icon={faPlus} />
+                    </motion.button>
+                  )}
+                </div>
+
+                {/* Botón de ocultar panel */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={togglePanelVisibility}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  title="Ocultar panel de módulos"
+                >
+                  <FontAwesomeIcon icon={faGripLinesVertical} />
+                  <span className="text-sm hidden sm:inline">Ocultar</span>
+                </motion.button>
+              </div>
+
+              <div className="mt-2">
+                <ModuleList
+                  modules={modules}
+                  color={courseColor}
+                  onLockModule={handleLockModule}
+                  onEditModule={(mod) => {
+                    setSelectedModule(mod);
+                    setShowEditModuleModal(true);
+                  }}
+                  onDeleteModule={(modId) => {
+                    const mod = modules.find((m) => m.ModuleID === modId);
+                    setSelectedModule(mod);
+                    setShowDeleteModuleModal(true);
+                  }}
+                  onShowActivityDetail={setSelectedActivity}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Botón para mostrar panel cuando está oculto */}
+        <AnimatePresence>
+          {!isPanelVisible && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                transition: { delay: 0.3 },
+              }}
+              exit={{ opacity: 0, x: 20 }}
+              onClick={togglePanelVisibility}
+              className="fixed top-[140px] right-0 z-50 bg-red-600 text-white px-4 py-3 rounded-l-lg shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              whileHover={{ x: -5 }}
+            >
+              <FontAwesomeIcon icon={faChevronRight} />
+              <span className="hidden sm:inline">Módulos</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Modales de crear/editar/eliminar módulo */}
-      {showCreateModuleModal && (
-        <CreateModuleModal
-          courseId={Number(id)}
-          onClose={() => setShowCreateModuleModal(false)}
-          onSave={handleCreateModule}
-        />
-      )}
-      {showEditModuleModal && selectedModule && (
-        <EditModuleModal
-          module={selectedModule}
-          onClose={() => setShowEditModuleModal(false)}
-          onSave={handleEditModule}
-        />
-      )}
-      {showDeleteModuleModal && selectedModule && (
-        <DeleteModuleModal
-          module={selectedModule}
-          onClose={() => setShowDeleteModuleModal(false)}
-          onConfirm={() => handleDeleteModule(selectedModule.ModuleID)}
-        />
-      )}
-    </motion.div>
+      {/* Modales */}
+      <AnimatePresence>
+        {showCreateModuleModal && (
+          <CreateModuleModal
+            courseId={Number(id)}
+            onClose={() => setShowCreateModuleModal(false)}
+            onSave={handleCreateModule}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEditModuleModal && selectedModule && (
+          <EditModuleModal
+            module={selectedModule}
+            onClose={() => setShowEditModuleModal(false)}
+            onSave={handleEditModule}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDeleteModuleModal && selectedModule && (
+          <DeleteModuleModal
+            module={selectedModule}
+            onClose={() => setShowDeleteModuleModal(false)}
+            onConfirm={() => handleDeleteModule(selectedModule.ModuleID)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

@@ -29,7 +29,7 @@ export default function CourseCard({ course, onClick }) {
       onClick={onClick}
       whileHover={{ scale: 1.03 }}
       whileTap={{ scale: 0.98 }}
-      className="cursor-pointer bg-white rounded-lg shadow transition-transform duration-300 hover:shadow-lg"
+      className="w-[300px] bg-white rounded-lg shadow transition-transform duration-300 hover:shadow-lg flex-shrink-0"
     >
       <div className="relative h-40 w-full overflow-hidden rounded-t-lg">
         <img
@@ -39,30 +39,30 @@ export default function CourseCard({ course, onClick }) {
         />
       </div>
 
-      <div className="p-3 space-y-2">
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">
+      <div className="p-3 flex flex-col justify-between space-y-0 h-[140px]">
+        <div>
+          <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 min-h-[1.5rem]">
             {course.title}
           </h3>
+          <p className="text-gray-500 text-xs line-clamp-2 min-h-[1.5rem]">
+            {course.description}
+          </p>
         </div>
 
-        <p className="text-gray-500 text-xs line-clamp-2">
-          {course.description}
-        </p>
-
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span className="truncate">
-            <FontAwesomeIcon
-              icon={courseIcon}
-              className="text-primary mr-1"
-            />
-            {course.category}
-          </span>
-          <span>{course.durationHours}h</span>
-        </div>
-
-        <div className="text-[10px] text-gray-400 truncate">
-          Por {course.createdByName}
+        <div className="text-xs text-gray-500 space-y-1">
+          <div className="flex justify-between">
+            <span className="truncate">
+              <FontAwesomeIcon
+                icon={courseIcon}
+                className="text-primary mr-1"
+              />
+              {course.category}
+            </span>
+            <span>{course.durationHours}h</span>
+          </div>
+          <div className="text-[10px] text-gray-400 truncate">
+            Por {course.createdByName}
+          </div>
         </div>
       </div>
     </motion.div>

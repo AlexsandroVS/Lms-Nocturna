@@ -8,43 +8,42 @@ const CourseHeader = ({ course, color, courseAverage }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl p-4 mb-5 shadow-lg relative overflow-hidden"
-      style={{ background: `linear-gradient(to bottom, ${color}, ${color}90)` }}
+      transition={{ duration: 0.5 }}
+      className="rounded-2xl p-6 mb-8 shadow-xl relative overflow-hidden border border-white/20 backdrop-blur-sm"
+      style={{
+        background: `linear-gradient(135deg, ${color}dd, ${color}90)`,
+      }}
     >
-      <div className="flex flex-col md:flex-row items-center justify-between">
-        <div className="mb-4 md:mb-0">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        {/* Info Principal */}
+        <div className="space-y-2">
           <motion.h1
-            initial={{ x: -20 }}
+            initial={{ x: -10 }}
             animate={{ x: 0 }}
-            className="text-4xl font-bold text-white mb-2 drop-shadow-md"
+            transition={{ delay: 0.2 }}
+            className="text-4xl font-bold text-white tracking-tight drop-shadow-sm"
           >
             {course.title}
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-white text-opacity-90 text-lg max-w-2xl"
-          >
-            {course.description}
-          </motion.p>
+          <p className="text-white text-opacity-90 text-base md:text-lg max-w-2xl leading-snug">
+            {course.description || "Sin descripción disponible."}
+          </p>
         </div>
-        
+
+        {/* Stats */}
         <motion.div
-          whileHover={{ scale: 1.05 }}
-          className="text-white text-center md:text-right space-y-2"
+          whileHover={{ scale: 1.03 }}
+          className="flex flex-col md:items-end gap-3"
         >
-          <div className="flex items-center space-x-2 mb-2 justify-center md:justify-end">
-            <FontAwesomeIcon icon={faClock} className="text-xl" />
-            <span>Duración: {course.durationHours} h</span>
+          <div className="flex items-center gap-2 text-white text-sm bg-white/20 px-4 py-2 rounded-full backdrop-blur-md shadow-sm">
+            <FontAwesomeIcon icon={faClock} className="text-white" />
+            <span>Duración: {course.durationHours || 0} h</span>
           </div>
-          {/* Mostrar el average del curso */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-white bg-opacity-20 px-4 py-2 rounded-full font-semibold backdrop-blur-sm inline-block"
-            style={{ color: color }}
+          <div
+            className="px-4 py-2 bg-white/20 text-white rounded-full font-medium text-sm shadow-sm backdrop-blur-md"
           >
-            Promedio del Curso: {courseAverage || "No disponible"}%
-          </motion.div>
+            Promedio del curso: {courseAverage || "No disponible"}%
+          </div>
         </motion.div>
       </div>
     </motion.div>

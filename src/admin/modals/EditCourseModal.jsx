@@ -43,6 +43,11 @@ const COLOR_PALETTE = [
   "#06B6D4",
   "#64748B",
 ];
+const CATEGORY_OPTIONS = [
+  "Programación", "Desarrollo Web", "Blockchain",
+  "Marketing Digital", "Diseño Gráfico", "Educación",
+  "Mecatrónica", "Robótica",
+];
 
 const inputClass =
   "w-full p-3 rounded-xl bg-white border border-transparent shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
@@ -286,13 +291,16 @@ export const EditCourseModal = ({ course, onClose, onSave }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Categoría
               </label>
-              <input
+              <select
                 value={courseData.category}
-                onChange={(e) =>
-                  setCourseData((p) => ({ ...p, category: e.target.value }))
-                }
+                onChange={(e) => setCourseData((p) => ({ ...p, category: e.target.value }))}
                 className={inputClass}
-              />
+              >
+                <option value="">Selecciona una categoría</option>
+                {CATEGORY_OPTIONS.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
 
             <div>

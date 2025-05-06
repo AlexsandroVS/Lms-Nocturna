@@ -115,7 +115,7 @@ const CreateUsersModal = ({ onClose, onSave }) => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               whileFocus={{ scale: 1.02 }}
             />
           </div>
@@ -128,7 +128,7 @@ const CreateUsersModal = ({ onClose, onSave }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               whileFocus={{ scale: 1.02 }}
             />
           </div>
@@ -141,7 +141,7 @@ const CreateUsersModal = ({ onClose, onSave }) => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               whileFocus={{ scale: 1.02 }}
             />
           </div>
@@ -153,7 +153,7 @@ const CreateUsersModal = ({ onClose, onSave }) => {
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               whileFocus={{ scale: 1.02 }}
             >
               <option value="admin">Administrador</option>

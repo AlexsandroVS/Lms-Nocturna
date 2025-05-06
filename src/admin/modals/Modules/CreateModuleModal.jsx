@@ -92,7 +92,7 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
                 value={moduleOrder}
                 onChange={(e) => setModuleOrder(e.target.value)}
                 placeholder="Ej: 1"
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3  border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 

@@ -3,65 +3,87 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faDownload,
   faFile,
+  faTimes,
   faFileWord,
   faSpinner,
-  faUserCircle,
   faFilePdf,
   faClock,
   faCheckCircle,
-  faEdit
+  faEdit,
+  faUserCheck,
+  faUserClock,
+  faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../context/AuthContext";
 import { useParams } from "react-router-dom";
-import RatingModal from "../admin/modals/Files/RatingModal"; // Modal para calificar
+import PDFPreviewModal from "../components/files/PDFPreviewModal";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 const FilesPage = () => {
   const { api, currentUser } = useAuth();
   const { activityId } = useParams();
-  const [files, setFiles] = useState([]);
-  const [users, setUsers] = useState([]);
+
+  const [submittedUsers, setSubmittedUsers] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [notSubmittedUsers, setNotSubmittedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploadError, setUploadError] = useState(null);
   const [activityDetails, setActivityDetails] = useState({
     name: "",
     deadline: null,
   });
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingGrade, setEditingGrade] = useState(null);
+  const [tempGrade, setTempGrade] = useState("");
+  const [editingFeedback, setEditingFeedback] = useState(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const usersResp = await api.get("/users");
-        const admins = usersResp.data.filter((user) => user.Role === "admin");
-        const adminUserIds = admins.map((admin) => admin.UserID);
+        setLoading(true);
 
-        const filesResp = await api.get(`/activities/${activityId}/files`);
-        const activityResp = await api.get(`/activities/${activityId}`);
+        // Obtener datos de actividad y usuarios
+        const [usersResp, activityResp, filesResp] = await Promise.all([
+          api.get("/users"),
+          api.get(`/activities/${activityId}`),
+          api.get(`/activities/${activityId}/files`),
+        ]);
+
         const { Title: name, Deadline: deadline } = activityResp.data;
+        setActivityDetails({ name, deadline });
 
-        // Filtrar los archivos de estudiantes (excluyendo los de los admins)
-        const filteredFiles = filesResp.data.filter(
-          (file) => !adminUserIds.includes(file.UserID)
+        // Filtrar usuarios estudiantes
+        const students = usersResp.data.filter((user) => user.Role !== "admin");
+
+        // Obtener entregas con calificaciones
+        const submissionsWithGrades = await Promise.all(
+          filesResp.data
+            .filter((file) => students.some((s) => s.UserID === file.UserID))
+            .map(async (file) => {
+              const gradeResp = await api.get(
+                `/grades/user/${file.UserID}/activity/${activityId}`
+              );
+              return {
+                ...file,
+                grade: gradeResp.data?.data || null,
+                user: students.find((u) => u.UserID === file.UserID),
+              };
+            })
         );
 
-        // Obtener calificaciones de cada archivo
-        const filesWithGrades = await Promise.all(filteredFiles.map(async (file) => {
-          const gradeResp = await api.get(`/grades/user/${file.UserID}/activity/${activityId}`);
-          const grade = gradeResp.data?.data || "N/A";
-          return { ...file, grade };
-        }));
+        // Separar usuarios que entregaron vs no entregaron
+        const submittedUserIds = submissionsWithGrades.map((s) => s.UserID);
+        const notSubmitted = students.filter(
+          (s) => !submittedUserIds.includes(s.UserID)
+        );
 
-        const filesWithUserInfo = filesWithGrades.map((file) => {
-          const user = usersResp.data.find((u) => u.UserID === file.UserID);
-          return { ...file, user };
-        });
-
-        setFiles(filesWithUserInfo);
-        setActivityDetails({ name, deadline });
-      } catch (error) {
-        console.error("Error al obtener los archivos y usuarios:", error);
-        setUploadError("Hubo un error al cargar los archivos.");
+        setSubmittedUsers(submissionsWithGrades);
+        setNotSubmittedUsers(notSubmitted);
+      } catch (err) {
+        console.error("Error:", err);
       } finally {
         setLoading(false);
       }
@@ -70,185 +92,579 @@ const FilesPage = () => {
     fetchData();
   }, [activityId, api]);
 
-  const isLate = (fileCreatedAt, deadline) => {
-    const deadlineDate = new Date(deadline);
-    const fileDate = new Date(fileCreatedAt);
-    return fileDate > deadlineDate;
+  const handleGradeChange = (userId, grade) => {
+    setEditingGrade(userId);
+    setTempGrade(grade);
+  };
+
+  const saveGrade = async (userId) => {
+    try {
+      if (
+        tempGrade === "" ||
+        isNaN(tempGrade) ||
+        tempGrade < 0 ||
+        tempGrade > 20
+      ) {
+        alert("La calificación debe ser un número entre 0 y 20");
+        return;
+      }
+  
+      const parsedScore = parseFloat(tempGrade);
+  
+      // Guardar en Grades
+      await api.post(`/grades/user/${userId}/activity/${activityId}`, {
+        score: parsedScore,
+      });
+  
+      // Obtener el archivo entregado por ese usuario
+      const fileToUpdate = submittedUsers.find((u) => u.user.UserID === userId);
+  
+      // Guardar también en Files
+      if (fileToUpdate) {
+        await api.patch(`/files/${fileToUpdate.FileID}/score`, {
+          score: parsedScore,
+        });
+      }
+  
+      // Actualizar estado local
+      setSubmittedUsers((prev) =>
+        prev.map((u) =>
+          u.UserID === userId ? { ...u, grade: parsedScore } : u
+        )
+      );
+  
+      setEditingGrade(null);
+    } catch (err) {
+      console.error("Error al guardar calificación:", err);
+      alert("Error al guardar calificación");
+    }
+  };
+  
+
+  const openFeedbackModal = (file) => {
+    setEditingFeedback(file);
+    setFeedbackText(file.Feedback || "");
+  };
+
+  const handleSaveFeedback = async () => {
+    try {
+      await api.patch(`/files/${editingFeedback.FileID}/feedback`, {
+        feedback: feedbackText,
+      });
+      setSubmittedUsers((prev) =>
+        prev.map((f) =>
+          f.FileID === editingFeedback.FileID
+            ? { ...f, Feedback: feedbackText }
+            : f
+        )
+      );
+      setEditingFeedback(null);
+    } catch (err) {
+      alert("Error al guardar feedback");
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingGrade(null);
+    setTempGrade("");
+  };
+
+  const filteredSubmitted = submittedUsers.filter((user) =>
+    user.user.Name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredNotSubmitted = notSubmittedUsers.filter((user) =>
+    user.Name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const isLate = (createdAt, deadline) =>
+    deadline && new Date(createdAt) > new Date(deadline);
+
+  const getFileIcon = (type) => {
+    if (type === "application/pdf") return faFilePdf;
+    if (type.includes("word")) return faFileWord;
+    return faFile;
   };
 
   const handleDownload = async (file) => {
     try {
-      setLoading(true);
       const response = await api.get(`/files/${file.FileID}`, {
         responseType: "blob",
       });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.download = file.FileName;
-      document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download failed:", error);
-      alert("Error al descargar el archivo");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Obtener el ícono correspondiente al tipo de archivo
-  const getFileIcon = (fileType) => {
-    if (fileType === "application/pdf") {
-      return faFilePdf;
-    } else if (
-      fileType === "application/msword" ||
-      fileType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ) {
-      return faFileWord;
-    } else {
-      return faFile;
-    }
-  };
-
-  const handleOpenRatingModal = (file) => {
-    setSelectedFile(file);
-    setShowRatingModal(true);
-  };
-
-  const handleGradeFile = async (userId, activityId, score) => {
-    try {
-      const response = await api.post(`/grades/user/${userId}/activity/${activityId}`, { score });
-  
-      if (response.data.success) {
-        alert("Calificación registrada correctamente.");
-        // Actualizar la calificación del archivo en la interfaz de usuario
-        setFiles((prevFiles) =>
-          prevFiles.map((file) =>
-            file.FileID === selectedFile.FileID ? { ...file, grade: score } : file
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error al calificar el archivo:", error);
-      alert("Hubo un error al calificar el archivo.");
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Error al descargar archivo");
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-8 bg-white shadow-xl rounded-xl">
-      {/* Header */}
-      <header className="text-center space-y-4 mb-8">
-        <h1 className="text-4xl font-semibold text-gray-800">{activityDetails.name}</h1>
-        <div className="flex justify-center gap-4 items-center">
-          <p className="text-gray-600 text-sm">Fecha Límite:</p>
-          <p className="text-blue-600 font-semibold">
-            {new Date(activityDetails.deadline).toLocaleDateString()}
-          </p>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-7xl mx-auto p-4 md:p-6 bg-white rounded-2xl shadow-xs"
+    >
+      {/* Encabezado elegante */}
+      <header className="mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+          <div>
+            <motion.h1
+              initial={{ y: -10 }}
+              animate={{ y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-2xl md:text-3xl font-semibold text-gray-800 mb-2"
+            >
+              {activityDetails.name}
+            </motion.h1>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <motion.div
+                animate={{ rotate: [0, 10, 0] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+              >
+                <FontAwesomeIcon icon={faClock} className="text-red-300" />
+              </motion.div>
+              <span>
+                {activityDetails.deadline
+                  ? new Date(activityDetails.deadline).toLocaleDateString()
+                  : "Sin fecha límite"}
+              </span>
+            </div>
+          </div>
+
+          <motion.div
+            whileHover={{ y: -2 }}
+            className="relative w-full md:w-80"
+          >
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FontAwesomeIcon icon={faSearch} className="text-red-300" />
+            </div>
+            <input
+              type="text"
+              placeholder="Buscar estudiante..."
+              className="pl-10 pr-4 py-2.5 w-full rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-red-200 focus:outline-none transition-all duration-200 shadow-inner"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </motion.div>
         </div>
       </header>
-  
-      {/* Carga o error */}
+
       {loading ? (
-        <div className="text-center py-12">
-          <FontAwesomeIcon icon={faSpinner} spin size="lg" className="text-blue-600 mb-4" />
-          <p className="text-gray-600">Cargando entregas...</p>
-        </div>
-      ) : uploadError ? (
-        <div className="bg-red-50 p-4 rounded-lg text-red-600 text-center">
-          {uploadError}
-        </div>
-      ) : files.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-xl">
-          <FontAwesomeIcon icon={faFile} className="text-5xl text-gray-400 mb-4" />
-          <p className="text-gray-600">No se han subido archivos aún.</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-16"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{
+              repeat: Infinity,
+              duration: 1.5,
+              ease: "linear",
+              damping: 10,
+            }}
+          >
+            <FontAwesomeIcon
+              icon={faSpinner}
+              className="text-3xl text-red-300"
+            />
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mt-4 text-gray-500"
+          >
+            Cargando entregas...
+          </motion.p>
+        </motion.div>
       ) : (
-        <ul className="space-y-6">
-          {files.map((file) => {
-            const isFileLate = isLate(file.CreatedAt, activityDetails.deadline);
-  
-            return (
-              <li
-                key={file.FileID}
-                className="p-6 bg-white border border-gray-300 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-              >
-                <div className="flex items-center gap-4">
-                  {/* Icono y nombre del archivo */}
+        <AnimatePresence>
+          {/* Sección principal */}
+          <div className="space-y-8">
+            {/* Tarjeta de entregas */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="bg-white rounded-xl overflow-hidden"
+            >
+              <div className="px-5 py-4 bg-gradient-to-r from-red-50 to-pink-50">
+                <h2 className="flex items-center gap-3 text-lg font-medium text-gray-800">
                   <FontAwesomeIcon
-                    icon={getFileIcon(file.FileType)}
-                    className="text-4xl text-blue-600"
+                    icon={faUserCheck}
+                    className="text-red-400"
                   />
-                  <div>
-                    <p className="text-xl font-semibold text-gray-900">{file.FileName}</p>
-                    <p className="text-sm text-gray-500">{file.FileType}</p>
-                    <p className="text-xs text-gray-500">Subido por: {file.user.Name}</p>
+                  Entregas ({filteredSubmitted.length})
+                </h2>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-red-50">
+                      {[
+                        "Estudiante",
+                        "Archivo",
+                        "Estado",
+                        "Calificación",
+                        "Acciones",
+                      ].map((header, i) => (
+                        <motion.th
+                          key={header}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.1 * i }}
+                          className="px-5 py-3 text-left text-xs font-medium text-gray-500 tracking-wider"
+                        >
+                          {header}
+                        </motion.th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    <AnimatePresence>
+                      {filteredSubmitted.map((submission) => (
+                        <motion.tr
+                          key={submission.FileID}
+                          initial={{ opacity: 0, scale: 0.98 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="group"
+                        >
+                          {/* Celda Estudiante */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <motion.div
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"
+                              >
+                                <span className="text-red-500 font-medium">
+                                  {submission.user.Name.charAt(0)}
+                                </span>
+                              </motion.div>
+                              <div>
+                                <div className="font-medium text-gray-800">
+                                  {submission.user.Name}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {submission.user.Email}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Celda Archivo */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <FontAwesomeIcon
+                                icon={getFileIcon(submission.FileType)}
+                                className="text-red-400 text-xl"
+                              />
+                              <div>
+                                <div className="font-medium text-gray-800 truncate max-w-xs">
+                                  {submission.FileName}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {new Date(
+                                    submission.CreatedAt
+                                  ).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Celda Estado */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            {isLate(
+                              submission.CreatedAt,
+                              activityDetails.deadline
+                            ) ? (
+                              <motion.span
+                                whileHover={{ scale: 1.03 }}
+                                className="px-3 py-1 inline-flex items-center text-xs font-medium rounded-full bg-red-100 text-red-600"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faClock}
+                                  className="mr-1.5"
+                                />
+                                Tardío
+                              </motion.span>
+                            ) : (
+                              <motion.span
+                                whileHover={{ scale: 1.03 }}
+                                className="px-3 py-1 inline-flex items-center text-xs font-medium rounded-full bg-green-100 text-green-600"
+                              >
+                                <FontAwesomeIcon
+                                  icon={faCheckCircle}
+                                  className="mr-1.5"
+                                />
+                                A tiempo
+                              </motion.span>
+                            )}
+                          </td>
+
+                          {/* Celda Calificación */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            {editingGrade === submission.user.UserID ? (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center gap-2"
+                              >
+                                <input
+                                  type="number"
+                                  value={tempGrade}
+                                  onChange={(e) => setTempGrade(e.target.value)}
+                                  className="w-20 p-1.5 rounded-lg bg-gray-50 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all"
+                                  min="0"
+                                  max="20"
+                                  step="0.1"
+                                />
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={() =>
+                                    saveGrade(submission.user.UserID)
+                                  }
+                                  className="text-green-500 hover:text-green-600"
+                                >
+                                  <FontAwesomeIcon icon={faCheckCircle} />
+                                </motion.button>
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  onClick={cancelEdit}
+                                  className="text-red-500 hover:text-red-600"
+                                >
+                                  <FontAwesomeIcon icon={faTimes} />
+                                </motion.button>
+                              </motion.div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`font-medium ${
+                                    submission.grade >= 14
+                                      ? "text-green-500"
+                                      : submission.grade >= 10
+                                      ? "text-amber-500"
+                                      : "text-red-500"
+                                  }`}
+                                >
+                                  {submission.grade || "Sin calificar"}
+                                </span>
+                                {currentUser?.role === "admin" && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.2 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() =>
+                                      handleGradeChange(
+                                        submission.user.UserID,
+                                        submission.grade || ""
+                                      )
+                                    }
+                                    className="text-red-400 hover:text-red-500"
+                                  >
+                                    <FontAwesomeIcon icon={faEdit} size="xs" />
+                                  </motion.button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Celda Acciones */}
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <motion.button
+                              whileHover={{ scale: 1.1, color: "#ef4444" }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleDownload(submission)}
+                              title="Descargar archivo"
+                              className="p-2 rounded-lg hover:bg-red-50 transition-colors text-red-400"
+                            >
+                              <FontAwesomeIcon icon={faDownload} />
+                            </motion.button>
+                            <motion.button
+                              onClick={() => {
+                                setPreviewPdfUrl(
+                                  `http://localhost:5000/${submission.Files.replace(
+                                    /\\/g,
+                                    "/"
+                                  )}`
+                                );
+                                setShowPdfModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Previsualizar PDF"
+                            >
+                              <FontAwesomeIcon icon={faSearch} />
+                            </motion.button>
+                            <motion.button
+                              onClick={() => openFeedbackModal(submission)}
+                              className="p-2 text-amber-500 hover:text-amber-600"
+                              title="Comentarios y retroalimentación"
+                            >
+                              <FontAwesomeIcon icon={faEdit} />
+                            </motion.button>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </AnimatePresence>
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+
+            {/* Sección de pendientes */}
+            {currentUser?.role === "admin" &&
+              filteredNotSubmitted.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white rounded-xl overflow-hidden"
+                >
+                  <div className="px-5 py-4 bg-gradient-to-r from-red-50 to-pink-50">
+                    <h2 className="flex items-center gap-3 text-lg font-medium text-gray-800">
+                      <FontAwesomeIcon
+                        icon={faUserClock}
+                        className="text-amber-400"
+                      />
+                      Pendientes ({filteredNotSubmitted.length})
+                    </h2>
                   </div>
-                </div>
-  
-                <div className="mt-3 flex items-center justify-between">
-                  {/* Calificación */}
-                  <div>
-                    <p className="text-xs text-gray-600 mt-2">
-                      <span className="font-semibold">Calificación:</span> {file.grade === "N/A" ? "N/A" : file.grade}
-                    </p>
+
+                  <div className="p-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredNotSubmitted.map((user) => (
+                        <motion.div
+                          key={user.UserID}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          whileHover={{ y: -3 }}
+                          className="bg-white p-4 rounded-lg shadow-sm hover:shadow-sm transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                              <span className="text-red-500 font-medium">
+                                {user.Name.charAt(0)}
+                              </span>
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">
+                                {user.Name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {user.Email}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-  
-                  {/* Estado de la entrega */}
-                  <div>
-                    {isFileLate ? (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <FontAwesomeIcon icon={faClock} className="mr-1" />
-                        Tardío
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <FontAwesomeIcon icon={faCheckCircle} className="mr-1" />
-                        Entregado a tiempo
-                      </span>
-                    )}
-                  </div>
-  
-                  {/* Acciones */}
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => handleDownload(file)}
-                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors duration-200"
-                    >
-                      <FontAwesomeIcon icon={faDownload} className="mr-2" />
-                      Descargar
-                    </button>
-  
-                    {currentUser?.role === "admin" && (
-                      <button
-                        onClick={() => handleOpenRatingModal(file)}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors duration-200"
-                      >
-                        <FontAwesomeIcon icon={faEdit} className="mr-2" />
-                        Calificar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                </motion.div>
+              )}
+
+            {/* Estados vacíos */}
+            {filteredSubmitted.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-center py-16"
+              >
+                <motion.div
+                  animate={{
+                    scale: [1, 1.05, 1],
+                    rotate: [0, 5, 0],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 4,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <FontAwesomeIcon
+                    icon={searchTerm ? faSearch : faFile}
+                    className="text-5xl text-red-200 mb-4"
+                  />
+                </motion.div>
+                <h3 className="text-lg font-medium text-gray-700">
+                  {searchTerm
+                    ? "No se encontraron resultados"
+                    : "No hay entregas aún"}
+                </h3>
+                <p className="text-gray-500 mt-2">
+                  {searchTerm
+                    ? `No hay coincidencias para "${searchTerm}"`
+                    : "Los estudiantes podrán subir sus archivos aquí"}
+                </p>
+              </motion.div>
+            )}
+          </div>
+        </AnimatePresence>
       )}
-  
-      {/* Modal para calificar */}
-      {showRatingModal && selectedFile && (
-        <RatingModal
-          file={selectedFile}
-          onClose={() => setShowRatingModal(false)}
-          onSubmit={(score) => handleGradeFile(selectedFile.user.UserID, activityId, score)}
-        />
+      {editingFeedback && (
+        <div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+            <div className="flex justify-between items-center px-6 py-5 bg-gray-50/50 border-b border-gray-100/50">
+              <h2 className="text-xl font-medium text-gray-900">
+                Editar Feedback
+              </h2>
+              <button
+                onClick={() => setEditingFeedback(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                aria-label="Cerrar"
+              >
+                <FontAwesomeIcon
+                  icon={faTimes}
+                  className="text-gray-500 hover:text-gray-700 text-lg transition-colors"
+                />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <textarea
+                rows={5}
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-gray-50/50 border-1 border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 resize-none outline-none"
+                placeholder="Escribe tu feedback aquí..."
+              />
+
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setEditingFeedback(null)}
+                  className="px-5 py-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors duration-200"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveFeedback}
+                  className="px-6 py-2.5 bg-blue-600 text-white hover:bg-blue-700 rounded-full transition-colors duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+      <PDFPreviewModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        fileUrl={previewPdfUrl}
+      />
+    </motion.div>
   );
-  
 };
 
 export default FilesPage;

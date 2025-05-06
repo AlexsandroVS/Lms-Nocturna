@@ -1,24 +1,35 @@
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
-import AdminStats from "./AdminStats";
+import StatsOverview from "./StatsOverview";
 import UserManagementTable from "./UserManagementTable";
 import CourseManagement from "./CourseManagement";
-import EditUserModal from "./modals/EditUserModal"; // Importar el modal de edición
-import DeleteUsersModal from "./modals/DeleteUsersModal"; // Importar el modal de eliminación
+import EditUserModal from "./modals/EditUserModal";
+import DeleteUsersModal from "./modals/DeleteUsersModal";
+import CreateUsersModal from "./modals/CreateUsersModal";
 import { useAuth } from "../context/AuthContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCog,
+  faUsers,
+  faBook,
+  faChartLine,
+  faSearch,
+} from "@fortawesome/free-solid-svg-icons";
 
-// Función para obtener la URL del avatar
+const SERVER_URL = "http://localhost:5000";
 const getAvatarUrl = (avatar) => {
-  const SERVER_URL = "http://localhost:5000";
-  if (!avatar) return "/img/admin-avatar.jpg";  // Ruta de la imagen por defecto en public/img/
-  return avatar.startsWith("http") ? avatar : `${SERVER_URL}${avatar}`; // Si es relativo, construir la URL completa
+  if (!avatar) return "/img/default-avatar.png";
+  return avatar.startsWith("http") ? avatar : `${SERVER_URL}${avatar}`;
 };
 
 export default function AdminDashboard() {
-  const [editingUser, setEditingUser] = useState(null); // Estado para el usuario que se va a editar
-  const [deletingUser, setDeletingUser] = useState(null); // Estado para el usuario que se va a eliminar
   const { api } = useAuth();
-  const [users, setUsers] = useState([]); // Almacenamos los usuarios obtenidos de la API
+  const [activeTab, setActiveTab] = useState("users");
+  const [editingUser, setEditingUser] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -37,9 +48,11 @@ export default function AdminDashboard() {
         name: u.Name,
         email: u.Email,
         role: u.Role,
-        avatar: u.Avatar ? getAvatarUrl(u.Avatar) : "/img/admin-avatar.jpg", // Usar la ruta correcta
-        registrationDate: u.RegistrationDate,
-        lastLogin: u.LastLogin,
+        avatar: getAvatarUrl(u.Avatar),
+        registrationDate: new Date(u.RegistrationDate).toLocaleDateString(),
+        lastLogin: u.LastLogin
+          ? new Date(u.LastLogin).toLocaleString()
+          : "Nunca",
         isActive: u.IsActive === 1,
       }));
       setUsers(mappedUsers);
@@ -51,37 +64,34 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditClick = (user) => {
-    setEditingUser(user);
-  };
-
-  const handleDeleteClick = (user) => {
-    setDeletingUser(user);
-  };
-
-  const handleModalClose = () => {
-    setEditingUser(null);
-  };
-
   const handleUserUpdate = async (updatedUser) => {
     try {
       await api.put(`/users/${updatedUser.id}`, updatedUser);
-      fetchUsers(); // Vuelve a obtener los usuarios
-      setEditingUser(null); // Cierra el modal después de la actualización
+      await fetchUsers();
+      setEditingUser(null);
     } catch (err) {
-      console.error(err);
-      alert("Error al actualizar usuario");
+      console.error("Error updating user:", err);
     }
   };
 
   const handleUserDelete = async (userToDelete) => {
     try {
       await api.delete(`/users/${userToDelete.id}`);
-      fetchUsers(); // Vuelve a obtener los usuarios
-      setDeletingUser(null); // Cierra el modal después de la eliminación
+      await fetchUsers();
+      setDeletingUser(null);
     } catch (err) {
-      console.error(err);
-      alert("Error al eliminar usuario");
+      console.error("Error deleting user:", err);
+    }
+  };
+
+  const handleUserCreate = async (newUser) => {
+    try {
+      await api.post("/users", newUser);
+      await fetchUsers();
+      setShowCreateUserModal(false);
+    } catch (err) {
+      console.error("Error al crear usuario:", err);
+      alert("Error al crear usuario");
     }
   };
 
@@ -93,48 +103,143 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-gray-50 p-6">
+      {/* Header */}
       <motion.div
-        initial={{ scale: 0.95 }}
-        animate={{ scale: 1 }}
-        className="bg-indigo-50 p-6 rounded-xl shadow-lg border-l-4 border-indigo-500"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-6 mb-8 text-white"
       >
-        <h1 className="text-2xl font-bold text-indigo-800 mb-2">
-          Panel de Administración
-        </h1>
-        <p className="text-indigo-600">
-          Bienvenido al centro de control de la plataforma. Aquí puedes gestionar todos los aspectos del sistema.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Panel de Administración</h1>
+            <p className="mt-2 opacity-90">
+              Gestión de usuarios, cursos y estadísticas
+            </p>
+          </div>
+          <motion.div
+            whileHover={{ rotate: 15 }}
+            className="bg-white bg-opacity-20 p-3 rounded-full"
+          >
+            <FontAwesomeIcon icon={faCog} className="text-2xl text-gray-950" />
+          </motion.div>
+        </div>
       </motion.div>
 
-      <AdminStats
-        metrics={[{ title: "Usuarios Activos", value: "1,234", change: "+5%" }, { title: "Cursos Publicados", value: "1", change: "+12%" }]}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <UserManagementTable
-          users={filteredUsers}
-          onEdit={handleEditClick}
-          onDelete={handleDeleteClick}
-        />
-        <CourseManagement />
+      {/* Tabs */}
+      <div className="flex gap-2 mb-8">
+        {[
+          { label: "Gestión de Usuarios", key: "users", icon: faUsers },
+          { label: "Gestión de Cursos", key: "courses", icon: faBook },
+          { label: "Estadísticas", key: "stats", icon: faChartLine },
+        ].map(({ label, key, icon }) => (
+          <motion.button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            className={`px-6 py-3 rounded-lg font-medium transition ${
+              activeTab === key
+                ? "bg-red-600 text-white shadow"
+                : "bg-white text-gray-700 hover:bg-gray-100"
+            }`}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            <FontAwesomeIcon icon={icon} className="mr-2" />
+            {label}
+          </motion.button>
+        ))}
       </div>
 
-      {editingUser && (
-        <EditUserModal
-          user={editingUser}
-          onClose={handleModalClose}
-          onSave={handleUserUpdate}
-        />
-      )}
+      {/* Content */}
+      <AnimatePresence mode="wait">
+        {activeTab === "users" && (
+          <motion.div
+            key="users-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white rounded-xl shadow-md p-6"
+          >
+            <div className="flex flex-col md:flex-row justify-between mb-6 gap-4">
+              <div className="relative w-full md:w-64">
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar usuarios..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg focus:outline-0 focus:border-0 focus:ring-2 focus:ring-red-500"
+                />
+              </div>
 
-      {deletingUser && (
-        <DeleteUsersModal
-          user={deletingUser}
-          onClose={() => setDeletingUser(null)}
-          onConfirm={handleUserDelete}
-        />
-      )}
+            </div>
+
+            {loading ? (
+              <div className="text-center py-20">Cargando usuarios...</div>
+            ) : error ? (
+              <div className="text-red-600">{error}</div>
+            ) : (
+              <UserManagementTable
+                users={filteredUsers}
+                onEdit={setEditingUser}
+                onDelete={setDeletingUser}
+                onCreate={() => setShowCreateUserModal(true)} // <- Aquí lo importante
+              />
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === "courses" && (
+          <motion.div
+            key="courses-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white rounded-xl shadow-md p-6"
+          >
+            <CourseManagement />
+          </motion.div>
+        )}
+
+        {activeTab === "stats" && (
+          <motion.div
+            key="stats-tab"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white rounded-xl shadow-md p-6"
+          >
+             <StatsOverview />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modales */}
+      <AnimatePresence>
+        {editingUser && (
+          <EditUserModal
+            user={editingUser}
+            onClose={() => setEditingUser(null)}
+            onSave={handleUserUpdate}
+          />
+        )}
+        {deletingUser && (
+          <DeleteUsersModal
+            user={deletingUser}
+            onClose={() => setDeletingUser(null)}
+            onConfirm={handleUserDelete}
+          />
+        )}
+        {showCreateUserModal && (
+          <CreateUsersModal
+            onClose={() => setShowCreateUserModal(false)}
+            onSave={handleUserCreate}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

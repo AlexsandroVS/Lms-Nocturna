@@ -25,8 +25,12 @@ export default function Navbar() {
   const navigationItems = [
     { icon: faHome, text: "Inicio", link: "/dashboard" },
     { icon: faBookOpen, text: coursesLinkText, link: "/courses" },
-    { icon: faUser, text: "Mi Perfil", link: "/profile" },
+    // Solo mostrar "Mi Perfil" si no es admin
+    ...(currentUser?.role !== "admin"
+      ? [{ icon: faUser, text: "Mi Perfil", link: "/profile" }]
+      : []),
   ];
+  
 
   const linkVariants = {
     hidden: { opacity: 0, y: -10 },

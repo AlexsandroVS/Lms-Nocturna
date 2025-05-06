@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider } from "./context/AuthContext";
-import LandingPage from "./pages/LandingPage"
+import LandingPage from "./pages/LandingPage";
 import ProtectedRoute from "./ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -22,7 +22,7 @@ const DashboardLayout = ({ children }) => (
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 p-6 mt-24 bg-white shadow-lg rounded-lg mx-4 my-6"
+      className="flex-1 p-6 mt-24 shadow-lg rounded-lg mx-4 my-6"
     >
       {children}
     </motion.main>
@@ -47,85 +47,25 @@ const App = () => {
           ) : (
             <Routes location={location} key={location.key}>
               {/* <Route path="/" element={<LandingPage />} /> */}
-              <Route path="/login" element={<Login setIsLoading={setIsLoading} />} />
-
+              <Route
+                path="/login"
+                element={<Login setIsLoading={setIsLoading} />}
+              />
 
               {/* Rutas protegidas con DashboardLayout */}
               <Route element={<ProtectedRoute layout={DashboardLayout} />}>
-                <Route
-                  path="/dashboard"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <Dashboard />
-                    </motion.div>
-                  }
-                />
-                <Route
-                  path="/courses"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <Courses />
-                    </motion.div>
-                  }
-                />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/courses" element={<Courses />} />
                 <Route
                   path="/courses/:courseId/modules/:moduleId"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <ActivityPage />
-                    </motion.div>
-                  }
+                  element={<ActivityPage />}
                 />
-
-                <Route
-                  path="/courses/:id"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <CoursePage />
-                    </motion.div>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <ProfilePage />
-                    </motion.div>
-                  }
-                />
-                <Route
-                  path="/files/:activityId"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <FilesPage />
-                    </motion.div>
-                  }
-                />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/files/:activityId" element={<FilesPage />} />
               </Route>
+
+              {/* Ruta sin layout para ancho completo */}
+              <Route path="/courses/:id"  element={<CoursePage />} />
 
               {/* Rutas de administrador */}
               <Route
@@ -133,18 +73,7 @@ const App = () => {
                   <ProtectedRoute roles={["admin"]} layout={DashboardLayout} />
                 }
               >
-                <Route
-                  path="/admin"
-                  element={
-                    <motion.div
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                    >
-                      <AdminDashboard />
-                    </motion.div>
-                  }
-                />
+                <Route path="/admin" element={<AdminDashboard />} />
               </Route>
 
               {/* Redirección para rutas no encontradas */}

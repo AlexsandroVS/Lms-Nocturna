@@ -1,280 +1,366 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faBookOpen, faClock, faUser, faGraduationCap, faTrophy } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEdit,
+  faUser,
+  faClock,
+  faGraduationCap,
+  faPen,
+} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext";
 import StatCard from "./StatCard";
-import CourseProgressCard from "./CourseProgressCard";
-import AchievementCard from "./ArchivementCard";
 import defaultAvatar from "../../../public/img/admin-avatar.jpg";
-import { profileVariants, itemVariants, colorPalette } from "../../utils/profileUtils";
 
 const SERVER_URL = "http://localhost:5000";
 
-// Función para construir la URL del avatar
-const getAvatarUrl = (avatar) => {
-  if (!avatar) return defaultAvatar;
-  return avatar.startsWith("http") ? avatar : `${SERVER_URL}${avatar}`;
-};
-
-const UserProfile = () => {
+export default function UserProfile() {
   const { currentUser, setCurrentUser, api } = useAuth();
   const fileInputRef = useRef(null);
 
-  // Estado local para el formulario de edición
   const [formData, setFormData] = useState({
-    name: currentUser?.name || "",
-    email: currentUser?.email || "",
-    avatar: getAvatarUrl(currentUser?.avatar),
+    name: "",
+    email: "",
+    avatar: "",
+    bio: "",
   });
-  const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [courses, setCourses] = useState([]);  // Nuevo estado para cursos
-  const [averageProgress, setAverageProgress] = useState(0); // Nuevo estado para el promedio de progreso
-  const [totalStudyHours, setTotalStudyHours] = useState(0); // Nuevo estado para las horas totales de estudio
 
-  // Sincroniza el formulario con currentUser cuando éste cambia
+  const [imageFile, setImageFile] = useState(null);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [averageProgress, setAverageProgress] = useState(0);
+  const [studyHours, setStudyHours] = useState(0);
+
   useEffect(() => {
     if (currentUser) {
+      const avatarUrl = !currentUser.avatar
+        ? defaultAvatar
+        : currentUser.avatar.startsWith("http")
+        ? currentUser.avatar
+        : `${SERVER_URL}${currentUser.avatar}`;
+
       setFormData({
-        name: currentUser.name,
-        email: currentUser.email,
-        avatar: getAvatarUrl(currentUser.avatar),
+        name: currentUser.name || "",
+        email: currentUser.email || "",
+        avatar: avatarUrl,
+        bio: currentUser.bio || "",
       });
     }
 
-    // Obtener todos los cursos de la API
-    const fetchCourses = async () => {
+    const fetchProgress = async () => {
       try {
-        const response = await api.get("/courses");  // Obtener todos los cursos
-        setCourses(response.data);  // Guardar los cursos en el estado
-
-        // Calcular el promedio de progreso de cada curso y las horas de estudio
-        let totalProgress = 0;
-        let courseCount = 0;
-        let totalDurationHours = 0;
-        
-        for (const course of response.data) {
-          const courseAverageResponse = await api.get(
-            `/grades/user/${currentUser.id}/course/${course.id}/averages`
-          );
-          const courseAverage = courseAverageResponse.data.data.courseAverage * 5; // Convertir la nota a porcentaje
-          totalProgress += courseAverage;
-          totalDurationHours += course.durationHours; // Sumar las horas de estudio
-          courseCount++;
-        }
-
-        // Calcular el promedio general de progreso
-        const average = totalProgress / courseCount;
-        setAverageProgress(average.toFixed()); 
-
-        // Establecer el total de horas de estudio
-        setTotalStudyHours(totalDurationHours);
-
-      } catch (err) {
-        console.error("Error al obtener los cursos:", err);
+        const res = await api.get(`/progress/${currentUser.id}`);
+        const uniqueCourses = [...new Set(res.data.map((p) => p.CourseID))];
+        setAverageProgress(Math.round((uniqueCourses.length / 10) * 100));
+        setStudyHours(uniqueCourses.length * 5);
+      } catch (e) {
+        console.error("Error al cargar progreso:", e);
       }
     };
 
-    fetchCourses();  // Llamada para obtener cursos
-  }, [currentUser, api]);
+    fetchProgress();
+  }, [currentUser]);
 
-  // Manejador para cambios en inputs de texto
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  // Manejador para cambio del avatar (archivo)
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    setImageFile(file);
     if (file) {
-      // Para previsualización usamos FileReader y convertimos a base64
       const reader = new FileReader();
-      reader.onload = () => {
-        setFormData(prev => ({ ...prev, avatar: reader.result }));
-      };
+      reader.onload = () =>
+        setFormData((p) => ({ ...p, avatar: reader.result }));
       reader.readAsDataURL(file);
     }
   };
 
-  // Manejador para guardar cambios
   const handleSave = async () => {
     setLoading(true);
     setError("");
+
     try {
-      const data = new FormData();
-      data.append("name", formData.name);
-      data.append("email", formData.email);
-      if (fileInputRef.current.files[0]) {
-        data.append("avatar", fileInputRef.current.files[0]);
-      }
-      const response = await api.put(`/users/${currentUser.id}`, data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      const updatedUser = response.data.user;
-      updatedUser.avatar = getAvatarUrl(updatedUser.avatar);
+      const form = new FormData();
+      form.append("name", formData.name);
+      form.append("email", formData.email);
+      form.append("bio", formData.bio);
+      if (imageFile) form.append("avatar", imageFile);
 
-      // Actualiza el estado global y local sin perder datos
-      setCurrentUser(prev => ({ ...prev, ...updatedUser }));
-      setFormData({
-        name: updatedUser.name,
-        email: updatedUser.email,
-        avatar: updatedUser.avatar,
-      });
+      const res = await api.put(`/users/${currentUser.id}`, form);
+      const updated = res.data.user;
+      updated.avatar = updated.avatar?.startsWith("http")
+        ? updated.avatar
+        : `${SERVER_URL}${updated.avatar}`;
+      setCurrentUser(updated);
       setEditing(false);
-
-      // Recargar la página para asegurar que se vean los cambios
-      window.location.reload(); // Recarga la página
-
     } catch (err) {
-      setError("Error al actualizar perfil");
-      console.error("Error en handleSave:", err);
+      console.error(err);
+      setError("Error al guardar cambios.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      variants={profileVariants}
-      initial="hidden"
-      animate="visible"
-      className="max-w-7xl mx-auto p-1"
-    >
-      {/* Header del Perfil */}
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8 bg-gray-50">
+      {/* Encabezado */}
       <motion.div
-        variants={itemVariants}
-        className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-8 mb-8 text-white shadow-xl"
+        className="flex flex-col md:flex-row gap-8 bg-white p-6 rounded-2xl shadow-xs border-l-4 border-[#FF5A5F]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <div className="flex flex-col md:flex-row items-center gap-6">
-          {/* Avatar */}
-          <div className="relative group cursor-pointer">
+        {/* Avatar */}
+        <div className="relative self-start group flex-shrink-0">
+          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 p-1 shadow-inner">
             <img
               src={formData.avatar}
               alt="Avatar"
-              className="w-32 h-32 rounded-full border-4 border-white/20 object-cover"
+              className="w-full h-full rounded-full object-cover"
             />
-            {editing && (
-              <>
-                <div
-                  className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => fileInputRef.current.click()}
-                >
-                  <FontAwesomeIcon icon={faEdit} className="text-2xl text-white" />
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                />
-              </>
-            )}
           </div>
-          {/* Datos del Usuario */}
-          <div className="flex-1">
-            {editing ? (
-              <>
+          {editing && (
+            <>
+              <motion.div
+                className="absolute inset-0 rounded-full flex items-center justify-center cursor-pointer"
+                onClick={() => fileInputRef.current.click()}
+                initial={{ opacity: 0 }}
+                whileHover={{ 
+                  opacity: 1,
+                  background: 'rgba(59, 130, 246, 0.2)'
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="bg-white p-3 rounded-full shadow-md">
+                  <FontAwesomeIcon icon={faEdit} className="text-blue-600" />
+                </div>
+              </motion.div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 space-y-5">
+          {editing ? (
+            <>
+              <div className="relative">
                 <input
-                  type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="text-4xl font-bold bg-transparent border-b border-white outline-none text-white w-full"
+                  className="text-2xl font-bold w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Tu nombre"
                 />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
+              </div>
+              <div className="relative">
                 <input
-                  type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="text-lg bg-transparent border-b border-white outline-none text-white w-full mt-2"
+                  className="text-gray-600 w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="tu@email.com"
                 />
-              </>
-            ) : (
-              <>
-                <h1 className="text-4xl font-bold">{formData.name}</h1>
-                <p className="text-white/90">{formData.email}</p>
-              </>
-            )}
-          </div>
-          {/* Botón de Editar/Guardar */}
-          <div>
-            <button
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-gray-800">
+                {formData.name}
+              </h1>
+              <p className="text-gray-500">{formData.email}</p>
+            </>
+          )}
+
+          <div className="flex items-center gap-3">
+            <motion.button
               onClick={editing ? handleSave : () => setEditing(true)}
               disabled={loading}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg mt-4"
+              className={`px-5 py-2.5 text-white font-medium rounded-lg transition-all flex items-center gap-2 ${
+                editing
+                  ? "bg-green-500 hover:bg-green-600 shadow-green-sm"
+                  : "bg-[#FF5A5F] hover:bg-[#AD4C4B] shadow-blue-sm"
+              } shadow-sm ${loading ? "opacity-80" : ""}`}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
             >
-              {editing ? (loading ? "Guardando..." : "Guardar") : "Editar"}
-            </button>
-            {error && <p className="text-red-500 mt-2">{error}</p>}
+              {editing ? (
+                loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar cambios"
+                )
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faEdit} className="text-sm" />
+                  Editar perfil
+                </>
+              )}
+            </motion.button>
+            {editing && (
+              <motion.button
+                onClick={() => setEditing(false)}
+                className="px-4 py-2.5 text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition-all"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                Cancelar
+              </motion.button>
+            )}
+            {error && (
+              <motion.p 
+                className="text-red-500 text-sm px-3 py-1 bg-red-50 rounded-lg"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {error}
+              </motion.p>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* Estadísticas Rápidas */}
-      <motion.div
-        variants={itemVariants}
-        className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+      {/* Estadísticas */}
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-3 gap-5"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
       >
-        <StatCard
-          icon={faUser}
-          title="Progreso General"
+        <StatCard 
+          icon={faUser} 
+          title="Progreso" 
           value={`${averageProgress}%`} 
-          color={colorPalette.primary}
+          color="#FF5A5F"
+          indicator={
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-100 overflow-hidden rounded-b-lg">
+              <div 
+                className="h-full bg-blue-500" 
+                style={{ width: `${averageProgress}%` }}
+              ></div>
+            </div>
+          }
         />
-        <StatCard
-          icon={faGraduationCap}
-          title="Cursos Completados"
-          value={currentUser.stats?.completedCourses || 0}
-          color={colorPalette.neutral}
+        <StatCard 
+          icon={faGraduationCap} 
+          title="Cursos Iniciados" 
+          value={Math.floor(averageProgress / 10)} 
+          color="#00C07F"
         />
-        <StatCard
-          icon={faClock}
-          title="Horas de Estudio"
-          value={totalStudyHours || 0}
-          color={colorPalette.secondary}
+        <StatCard 
+          icon={faClock} 
+          title="Horas Totales" 
+          value={studyHours} 
+          color="#FF9F1C"
         />
       </motion.div>
 
-      {/* Contenido Principal: Cursos y Logros */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Cursos en Progreso */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white h-80 scrollbar-custom overflow-auto rounded-2xl shadow-xl p-6 border-t-4"
+      {/* Bio e Intereses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  {/* Bio - Sección mejorada */}
+  <motion.div 
+    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500 space-y-4"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2 }}
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-2 h-6 bg-red-500 rounded-full"></div>
+      <h3 className="text-lg font-semibold text-gray-800">
+        Acerca de mí
+      </h3>
+      {editing && (
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          className="ml-auto"
         >
-          <h2
-            className="text-2xl font-bold mb-6 flex items-center gap-3"
-            style={{ color: colorPalette.primary }}
-          >
-            <FontAwesomeIcon
-              icon={faBookOpen}
-              className="text-3xl transition-transform hover:scale-110"
-            />
-            Cursos en Progreso
-            <span className="text-sm bg-red-100 text-red-800 px-3 py-1 rounded-full">
-              {courses.length} activos
-            </span>
-          </h2>
-          <div className="space-y-4">
-            {courses.map((course, index) => (
-              <CourseProgressCard
-                key={course.id}
-                course={course}
-                index={index}
-                accentColor={colorPalette.primary}
-              />
-            ))}
-          </div>
-        </motion.div>
-        {/* Últimos Logros */}
-        
+          <FontAwesomeIcon 
+            icon={faPen} 
+            className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer" 
+          />
+        </motion.button>
+      )}
+    </div>
+    
+    {editing ? (
+      <div className="relative group">
+        <textarea
+          rows={4}
+          value={formData.bio}
+          name="bio"
+          onChange={handleChange}
+          className="w-full p-3 bg-red-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-200 transition-all border border-red-100"
+          placeholder="Cuéntanos sobre ti, tus intereses y objetivos..."
+        />
+        <div className="absolute bottom-2 left-3 right-3 h-0.5 bg-red-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
       </div>
-    </motion.div>
-  );
-};
+    ) : (
+      <p className="text-sm text-gray-700 leading-relaxed bg-red-50/30 p-3 rounded-lg">
+        {formData.bio || (
+          <span className="text-gray-500 italic">Sin descripción aún. Haz clic en Editar perfil para añadir una biografía.</span>
+        )}
+      </p>
+    )}
+  </motion.div>
 
-export default UserProfile;
+  {/* Intereses - Sección mejorada */}
+  <motion.div 
+    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500 space-y-4"
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.3 }}
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-2 h-6 bg-red-500 rounded-full"></div>
+      <h3 className="text-lg font-semibold text-gray-800">
+        Intereses
+      </h3>
+    </div>
+    
+    <div className="flex flex-wrap gap-3">
+      {["Programación", "Diseño UI/UX", "JavaScript", "Aprendizaje continuo", "React", "Node.js"].map((interest) => (
+        <motion.span
+          key={interest}
+          className="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-800 transition-colors cursor-default flex items-center gap-2"
+          whileHover={{ scale: 1.05, boxShadow: "0 2px 8px rgba(239, 68, 68, 0.2)" }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+          {interest}
+        </motion.span>
+      ))}
+      
+      {editing && (
+        <motion.button 
+          className="px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-700 transition-colors flex items-center gap-2"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <FontAwesomeIcon icon={faPlus} className="text-xs" />
+          Añadir
+        </motion.button>
+      )}
+    </div>
+  </motion.div>
+</div>
+    </div>
+  );
+}

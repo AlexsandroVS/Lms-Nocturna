@@ -2,7 +2,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faXmark, faPlus, faSpinner, faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import {
+  faXmark,
+  faPlus,
+  faSpinner,
+  faBookOpen,
+} from "@fortawesome/free-solid-svg-icons";
 
 export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
   const [title, setTitle] = useState("");
@@ -10,9 +15,9 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto";
       setTitle("");
       setModuleOrder("");
       setLoading(false);
@@ -24,7 +29,11 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
     setLoading(true);
 
     try {
-      await onSave({ courseId, title, moduleOrder: moduleOrder ? Number(moduleOrder) : null });
+      await onSave({
+        courseId,
+        title,
+        moduleOrder: moduleOrder ? Number(moduleOrder) : null,
+      });
       onClose();
     } catch (error) {
       console.error("Error al crear módulo:", error);
@@ -47,13 +56,15 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
           <div className="flex justify-between items-start mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <FontAwesomeIcon 
-                  icon={faBookOpen} 
+                <FontAwesomeIcon
+                  icon={faBookOpen}
                   className="text-blue-600 bg-blue-100 p-2 rounded-lg"
                 />
                 Nuevo Módulo
               </h2>
-              <p className="text-sm text-gray-500 mt-1">Agrega un nuevo módulo al curso</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Agrega un nuevo módulo al curso
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -76,7 +87,7 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ej: Introducción al curso"
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border-1 border-slate-300 focus:outline-0 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
@@ -92,27 +103,30 @@ export const CreateModuleModal = ({ courseId, onClose, onSave }) => {
                 value={moduleOrder}
                 onChange={(e) => setModuleOrder(e.target.value)}
                 placeholder="Ej: 1"
-                className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3  border-1 border-slate-300 focus:outline-0  rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             {/* Botones */}
-            <div className="pt-6 flex justify-end gap-3">
+            <div className="pt-6 flex justify-center gap-3">
+              {/* Botón Cancelar - estilo rojo */}
               <motion.button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-xl text-white bg-red-600 hover:bg-red-700 transition-all font-medium"
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
               >
                 Cancelar
               </motion.button>
+
+              {/* Botón Crear - estilo azul */}
               <motion.button
                 type="submit"
                 disabled={!title || loading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:bg-gray-400"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium flex items-center gap-2 transition-all duration-300 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
               >
                 {loading ? (
                   <FontAwesomeIcon icon={faSpinner} spin className="text-lg" />
