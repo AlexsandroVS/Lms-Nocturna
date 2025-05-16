@@ -88,7 +88,7 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
 
   return (
     <motion.div
-      className="group bg-white rounded-xl shadow-sm  border-gray-100 p-5 h-[360px] flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all hover:shadow-md hover:border-gray-200"
+      className="group bg-white rounded-xl shadow-sm  border-gray-100 p-6 h-[420px] flex flex-col justify-between relative overflow-hidden cursor-pointer transition-all hover:shadow-md hover:border-gray-200"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
@@ -178,35 +178,38 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
         </div>
 
         {/* Title & Description */}
-        <div className="mb-4 space-y-3 flex-1 overflow-hidden">
+        <div className="mb-4 space-y-3 flex-1 min-h-[120px] flex flex-col">
           <h3 className="text-xl font-semibold text-gray-900 line-clamp-2 leading-snug">
             {title}
           </h3>
-          <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">
-            {description || "Descripción no disponible"}
-          </p>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-gray-500 text-sm line-clamp-4 leading-relaxed h-full">
+              {description || "Descripción no disponible"}
+            </p>
+          </div>
         </div>
 
         {/* Progress Section */}
         <div className="border-t border-gray-100 pt-4 space-y-3">
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
-              {/* <span className="text-xs font-medium text-gray-500">Progreso</span>
-              <span className="text-xs font-semibold" style={{ color }}>
-                {Math.round(courseAverage)}%
-              </span> */}
+          {courseAverage > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-gray-500">Progreso</span>
+                <span className="text-xs font-semibold" style={{ color }}>
+                  {Math.round(courseAverage)}%
+                </span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.round(courseAverage)}%` }}
+                  transition={{ duration: 0.8, type: "spring" }}
+                  style={{ backgroundColor: color }}
+                />
+              </div>
             </div>
-
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.round(courseAverage)}%` }}
-                transition={{ duration: 0.8, type: "spring" }}
-                style={{ backgroundColor: color }}
-              />
-            </div>
-          </div>
+          )}
 
           {/* Action Button */}
           <motion.button

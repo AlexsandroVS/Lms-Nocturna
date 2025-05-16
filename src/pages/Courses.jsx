@@ -7,7 +7,7 @@ import UserCourseCard from "../components/courses/UserCourseCard";
 import AdminCourses from "../admin/Acourses/AdminCourses";
 
 export default function Courses() {
-  const { currentUser, api, isAdmin } = useAuth();
+  const { currentUser, api, isAdmin, isTeacher } = useAuth();
   const [userCourses, setUserCourses] = useState([]);
   const [averages, setAverages] = useState({});
   const [loading, setLoading] = useState(true);
@@ -61,6 +61,7 @@ export default function Courses() {
   }, [currentUser, api, isAdmin]);
 
   if (isAdmin) return <AdminCourses />;
+  if (isTeacher) return <AdminCourses />;
 
   return (
     <div className="bg-gray-50 min-h-screen px-4 py-12">

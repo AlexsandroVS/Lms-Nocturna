@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 
 export default function Dashboard() {
-  const { currentUser, isAdmin, loading, api } = useAuth();
+  const { currentUser, isAdmin,isTeacher, loading, api } = useAuth();
   const [courses, setCourses] = useState([]);
   const [activeBanner, setActiveBanner] = useState(0);
   const [search, setSearch] = useState("");
@@ -116,7 +116,7 @@ export default function Dashboard() {
     <div className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
       <Header />
 
-      {isAdmin ? (
+      {isAdmin || isTeacher ? (
         <AdminDashboard />
       ) : (
         <div className="space-y-8">

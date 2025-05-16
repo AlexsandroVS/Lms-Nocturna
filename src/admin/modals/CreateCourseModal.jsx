@@ -33,8 +33,8 @@ const COLOR_PALETTE = [
 ];
 
 const CATEGORY_OPTIONS = [
-  "Programación", "Desarrollo Web", "Blockchain",
-  "Marketing Digital", "Diseño Gráfico", "Educación",
+  "Fabricación Digital",
+  "Marketing Digital", "Herramientas Digitales", "Educación",
   "Mecatrónica", "Robótica",
 ];
 

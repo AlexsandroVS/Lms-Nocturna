@@ -42,7 +42,7 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate }) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <span className="bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-purple-600 to-purple-500 bg-clip-text text-transparent">
                 Usuarios Registrados
               </span>
               <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">

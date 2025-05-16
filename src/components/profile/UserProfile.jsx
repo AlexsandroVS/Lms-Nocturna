@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
+  faPlus,
   faUser,
   faClock,
   faGraduationCap,
@@ -108,7 +109,7 @@ export default function UserProfile() {
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8 bg-gray-50">
       {/* Encabezado */}
       <motion.div
-        className="flex flex-col md:flex-row gap-8 bg-white p-6 rounded-2xl shadow-xs border-l-4 border-[#FF5A5F]"
+        className="flex flex-col md:flex-row gap-8 bg-white p-6 rounded-2xl shadow-xs border-l-4 border-[#6802C1]"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -190,7 +191,7 @@ export default function UserProfile() {
               className={`px-5 py-2.5 text-white font-medium rounded-lg transition-all flex items-center gap-2 ${
                 editing
                   ? "bg-green-500 hover:bg-green-600 shadow-green-sm"
-                  : "bg-[#FF5A5F] hover:bg-[#AD4C4B] shadow-blue-sm"
+                  : "bg-[#6802C1] hover:bg-[#8257a7] shadow-blue-sm"
               } shadow-sm ${loading ? "opacity-80" : ""}`}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
@@ -248,7 +249,7 @@ export default function UserProfile() {
           icon={faUser} 
           title="Progreso" 
           value={`${averageProgress}%`} 
-          color="#FF5A5F"
+          color="#B272FD"
           indicator={
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-100 overflow-hidden rounded-b-lg">
               <div 
@@ -262,13 +263,13 @@ export default function UserProfile() {
           icon={faGraduationCap} 
           title="Cursos Iniciados" 
           value={Math.floor(averageProgress / 10)} 
-          color="#00C07F"
+          color="#B272FD"
         />
         <StatCard 
           icon={faClock} 
           title="Horas Totales" 
           value={studyHours} 
-          color="#FF9F1C"
+          color="#B272FD"
         />
       </motion.div>
 
@@ -276,13 +277,13 @@ export default function UserProfile() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
   {/* Bio - Sección mejorada */}
   <motion.div 
-    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500 space-y-4"
+    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500 space-y-4"
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.2 }}
   >
     <div className="flex items-center gap-3">
-      <div className="w-2 h-6 bg-red-500 rounded-full"></div>
+      <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
       <h3 className="text-lg font-semibold text-gray-800">
         Acerca de mí
       </h3>
@@ -294,7 +295,7 @@ export default function UserProfile() {
         >
           <FontAwesomeIcon 
             icon={faPen} 
-            className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer" 
+            className="text-gray-500 hover:text-purple-500 transition-colors cursor-pointer" 
           />
         </motion.button>
       )}
@@ -323,13 +324,13 @@ export default function UserProfile() {
 
   {/* Intereses - Sección mejorada */}
   <motion.div 
-    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-red-500 space-y-4"
+    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500 space-y-4"
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.3 }}
   >
     <div className="flex items-center gap-3">
-      <div className="w-2 h-6 bg-red-500 rounded-full"></div>
+      <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
       <h3 className="text-lg font-semibold text-gray-800">
         Intereses
       </h3>
@@ -339,18 +340,18 @@ export default function UserProfile() {
       {["Programación", "Diseño UI/UX", "JavaScript", "Aprendizaje continuo", "React", "Node.js"].map((interest) => (
         <motion.span
           key={interest}
-          className="px-3 py-1.5 bg-red-50 text-red-700 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-800 transition-colors cursor-default flex items-center gap-2"
+          className="px-3 py-1.5 bg-red-50 text-purple-700 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-800 transition-colors cursor-default flex items-center gap-2"
           whileHover={{ scale: 1.05, boxShadow: "0 2px 8px rgba(239, 68, 68, 0.2)" }}
           whileTap={{ scale: 0.95 }}
         >
-          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
           {interest}
         </motion.span>
       ))}
       
       {editing && (
         <motion.button 
-          className="px-3 py-1.5 bg-red-50 text-red-600 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-700 transition-colors flex items-center gap-2"
+          className="px-3 py-1.5 bg-red-50 text-purple-600 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-purple-700 transition-colors flex items-center gap-2"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >

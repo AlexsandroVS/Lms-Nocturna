@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import StatsOverview from "./StatsOverview";
 import UserManagementTable from "./UserManagementTable";
-import CourseManagement from "./CourseManagement";
+import CourseAssignmentManagement from "./CourseAssignmentManagement";
 import EditUserModal from "./modals/EditUserModal";
 import DeleteUsersModal from "./modals/DeleteUsersModal";
 import CreateUsersModal from "./modals/CreateUsersModal";
@@ -23,12 +24,11 @@ const getAvatarUrl = (avatar) => {
 };
 
 export default function AdminDashboard() {
-  const { api } = useAuth();
+  const { api, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-6 mb-8 text-white"
+        className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-xl shadow-lg p-6 mb-8 text-white"
       >
         <div className="flex items-center justify-between">
           <div>
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
       <div className="flex gap-2 mb-8">
         {[
           { label: "Gestión de Usuarios", key: "users", icon: faUsers },
-          { label: "Gestión de Cursos", key: "courses", icon: faBook },
+          { label: "Asignación de Cursos", key: "assignments", icon: faBook },
           { label: "Estadísticas", key: "stats", icon: faChartLine },
         ].map(({ label, key, icon }) => (
           <motion.button
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab(key)}
             className={`px-6 py-3 rounded-lg font-medium transition ${
               activeTab === key
-                ? "bg-red-600 text-white shadow"
+                ? "bg-purple-700 text-white shadow"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
             whileHover={{ scale: 1.02 }}
@@ -174,7 +174,6 @@ export default function AdminDashboard() {
                   className="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg focus:outline-0 focus:border-0 focus:ring-2 focus:ring-red-500"
                 />
               </div>
-
             </div>
 
             {loading ? (
@@ -184,23 +183,23 @@ export default function AdminDashboard() {
             ) : (
               <UserManagementTable
                 users={filteredUsers}
-                onEdit={setEditingUser}
-                onDelete={setDeletingUser}
-                onCreate={() => setShowCreateUserModal(true)} // <- Aquí lo importante
+                onEdit={isAdmin ? setEditingUser : null}
+                onDelete={isAdmin ? setDeletingUser : null}
+                onCreate={isAdmin ? () => setShowCreateUserModal(true) : null}
               />
             )}
           </motion.div>
         )}
 
-        {activeTab === "courses" && (
+        {activeTab === "assignments" && (
           <motion.div
-            key="courses-tab"
+            key="assignments-tab"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="bg-white rounded-xl shadow-md p-6"
           >
-            <CourseManagement />
+            <CourseAssignmentManagement />
           </motion.div>
         )}
 
@@ -212,28 +211,28 @@ export default function AdminDashboard() {
             exit={{ opacity: 0, y: -10 }}
             className="bg-white rounded-xl shadow-md p-6"
           >
-             <StatsOverview />
+            <StatsOverview />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Modales */}
       <AnimatePresence>
-        {editingUser && (
+        {isAdmin && editingUser && (
           <EditUserModal
             user={editingUser}
             onClose={() => setEditingUser(null)}
             onSave={handleUserUpdate}
           />
         )}
-        {deletingUser && (
+        {isAdmin && deletingUser && (
           <DeleteUsersModal
             user={deletingUser}
             onClose={() => setDeletingUser(null)}
             onConfirm={handleUserDelete}
           />
         )}
-        {showCreateUserModal && (
+        {isAdmin && showCreateUserModal && (
           <CreateUsersModal
             onClose={() => setShowCreateUserModal(false)}
             onSave={handleUserCreate}

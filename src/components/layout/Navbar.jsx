@@ -1,163 +1,232 @@
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faHome,
-  faBookOpen,
-  faUser,
-  faSignOutAlt,
-} from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+  faHome, 
+  faBookOpen, 
+  faUser, 
+  faSignOutAlt, 
+  faSearch, 
+  faTimes,
+  faSpinner
+} from '@fortawesome/free-solid-svg-icons';
+import { useAuth } from '../../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
+  const { currentUser, logout, api } = useAuth();
   const navigate = useNavigate();
-  const { currentUser, logout } = useAuth();
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
 
-  const handleLogout = () => {
-    logout();
+  const coursesLinkText = currentUser?.role === 'admin' ? 'Administrar Cursos' : 'Mis Cursos';
+
+const navigationItems = [
+  { icon: faHome, text: 'Inicio', link: '/dashboard' },
+  { icon: faBookOpen, text: coursesLinkText, link: '/courses' },
+  ...(currentUser?.role !== 'admin' && currentUser?.role !== 'teacher'
+    ? [{ icon: faUser, text: 'Mi Perfil', link: '/profile' }]
+    : []),
+];
+
+
+  // Búsqueda con debounce mejorado
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.length > 1) {
+        fetchSuggestions();
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchSuggestions = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get(`/courses/search/suggestions?query=${encodeURIComponent(searchQuery)}`);
+      setSuggestions(response.data);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Error fetching suggestions:', error);
+      setSuggestions([
+        { type: 'term', value: searchQuery + ' básico' },
+        { type: 'term', value: searchQuery + ' avanzado' },
+        { type: 'term', value: 'Introducción a ' + searchQuery }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Determinar el texto del enlace de cursos basado en el rol
-  const coursesLinkText = currentUser?.role === "admin" ? "Administrar Cursos" : "Mis Cursos";
-
-  const navigationItems = [
-    { icon: faHome, text: "Inicio", link: "/dashboard" },
-    { icon: faBookOpen, text: coursesLinkText, link: "/courses" },
-    // Solo mostrar "Mi Perfil" si no es admin
-    ...(currentUser?.role !== "admin"
-      ? [{ icon: faUser, text: "Mi Perfil", link: "/profile" }]
-      : []),
-  ];
-  
-
-  const linkVariants = {
-    hidden: { opacity: 0, y: -10 },
-    visible: { opacity: 1, y: 0 },
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search-results?query=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery('');
+      setShowSuggestions(false);
+    }
   };
 
-  const mobileMenuVariants = {
-    hidden: { opacity: 0, y: -20 },
-    visible: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -20 },
+  const handleSuggestionClick = (item) => {
+    if (item.type === 'course') {
+      navigate(`/courses/${item.id}`);
+    } else {
+      setSearchQuery(item.value);
+      navigate(`/search-results?query=${encodeURIComponent(item.value)}`);
+    }
+    setShowSuggestions(false);
   };
+
+  // Cerrar sugerencias al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <nav className="bg-[#F8F9FB] border-b border-gray-200 h-20 fixed w-full top-0 z-50 shadow-sm backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-white shadow-sm fixed w-full top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
         <div className="flex justify-between h-20 items-center">
-          {/* Logo */}
-          <div className="flex items-center space-x-4">
-            <img
-              src="/img/logo-ong.png"
-              alt="Logo Viva Perú"
-              className="h-14 w-auto cursor-pointer drop-shadow-sm"
-              onClick={() => navigate("/dashboard")}
-            />
-          </div>
-
-          {/* Navegación en pantallas grandes */}
-          <div className="hidden md:flex md:space-x-6 items-center">
-            {navigationItems.map((item, index) => (
-              <motion.div
-                key={index}
-                variants={linkVariants}
-                initial="hidden"
-                animate="visible"
-                transition={{ delay: index * 0.08 }}
-              >
-                <Link
-                  to={item.link}
-                  className="text-[#D16160] hover:text-[#bb4f4f] px-3 py-2 rounded-md text-lg font-semibold transition duration-200 flex items-center gap-2"
+          {/* Barra de búsqueda */}
+          <div className="flex items-center flex-1 mr-4" ref={searchRef}>
+            <form onSubmit={handleSearch} className="relative w-full max-w-md">
+              <input
+                type="text"
+                placeholder="Buscar cursos..."
+                className="w-full py-2 pl-4 pr-10 rounded-full border border-slate-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.length > 1) {
+                    setShowSuggestions(true);
+                  }
+                }}
+              />
+              <div className="absolute right-3 top-2.5 flex items-center">
+                {isLoading ? (
+                  <FontAwesomeIcon icon={faSpinner} className="text-gray-400 animate-spin mr-1" />
+                ) : searchQuery ? (
+                  <button
+                    type="button"
+                    className="text-gray-500 hover:text-purple-700 mr-1"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <FontAwesomeIcon icon={faTimes} size="xs" />
+                  </button>
+                ) : null}
+                <button
+                  type="submit"
+                  className="text-gray-500 hover:text-purple-700"
                 >
-                  <FontAwesomeIcon icon={item.icon} />
-                  {item.text}
-                </Link>
-              </motion.div>
-            ))}
-            <motion.div
-              variants={linkVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: navigationItems.length * 0.08 }}
-            >
-              <button
-                onClick={handleLogout}
-                className="text-[#D16160] hover:text-[#bb4f4f] px-3 py-2 rounded-md text-lg font-semibold transition duration-200 flex items-center gap-2"
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} />
-                Cerrar Sesión
-              </button>
-            </motion.div>
+                  <FontAwesomeIcon icon={faSearch} />
+                </button>
+              </div>
+
+              {/* Sugerencias de búsqueda mejoradas - AHORA DENTRO DEL FORM */}
+              <AnimatePresence>
+                {showSuggestions && (suggestions.length > 0 || isLoading) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 0 }}
+                    animate={{ opacity: 1, y: 5 }} // Pequeño desplazamiento hacia abajo
+                    exit={{ opacity: 0, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute z-50 top-full left-0 w-full bg-white rounded-lg shadow-lg border border-slate-200 mt-1 overflow-hidden"
+                  >
+                    <ul className="py-1 max-h-96 overflow-y-auto">
+                      {isLoading ? (
+                        <li className="px-4 py-2 text-slate-500 flex items-center">
+                          <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                          Buscando...
+                        </li>
+                      ) : (
+                        <>
+                          {/* Cursos sugeridos */}
+                          {suggestions.filter(s => s.type === 'course').slice(0, 3).map((course) => (
+                            <li
+                              key={`course-${course.id}`}
+                              className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                              onClick={() => handleSuggestionClick(course)}
+                            >
+                              <div>
+                                <p className="text-slate-800 font-medium">{course.title}</p>
+                                {course.category && (
+                                  <p className="text-slate-500 text-sm mt-1">{course.category}</p>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+
+                          {/* Términos de búsqueda sugeridos */}
+                          {suggestions.filter(s => s.type === 'term').map((term, index) => (
+                            <li
+                              key={`term-${index}`}
+                              className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                              onClick={() => handleSuggestionClick(term)}
+                            >
+                              <div className="flex items-center text-slate-700">
+                                <FontAwesomeIcon icon={faSearch} className="text-slate-400 mr-3" />
+                                <span>{term.value}</span>
+                              </div>
+                            </li>
+                          ))}
+
+                          {/* Búsqueda actual */}
+                          <li
+                            className="px-4 py-3 hover:bg-slate-50 cursor-pointer bg-slate-50"
+                            onClick={() => {
+                              navigate(`/search-results?query=${encodeURIComponent(searchQuery)}`);
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <div className="flex items-center text-purple-700 font-medium">
+                              <FontAwesomeIcon icon={faSearch} className="mr-3" />
+                              <span>Buscar "{searchQuery}"</span>
+                            </div>
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </form>
           </div>
 
-          {/* Botón de menú móvil */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-[#D16160] hover:bg-[#fde8e8] transition duration-300"
-            >
-              <svg
-                className="h-6 w-6"
-                stroke="currentColor"
-                fill="none"
-                viewBox="0 0 24 24"
+          {/* Enlaces de navegación */}
+          <div className="flex items-center space-x-6">
+            {navigationItems.map((item, index) => (
+              <Link
+                key={index}
+                to={item.link}
+                className="text-purple-700 hover:text-purple-900 px-2 py-1 rounded-md text-lg font-medium transition duration-200 flex items-center"
               >
-                {isMobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                )}
-              </svg>
+                <FontAwesomeIcon icon={item.icon} className="mr-2" />
+                <span>{item.text}</span>
+              </Link>
+            ))}
+            
+            <button
+              onClick={logout}
+              className="text-purple-700 hover:text-purple-900 px-2 py-1 rounded-md text-sm font-medium transition duration-200 flex items-center"
+            >
+              <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+              <span className='text-lg'>Cerrar Sesión</span>
             </button>
           </div>
         </div>
       </div>
-
-      {/* Menú móvil */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            className="md:hidden bg-white border-t border-gray-200"
-            variants={mobileMenuVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ type: "spring", stiffness: 100, damping: 20 }}
-          >
-            <div className="px-4 pt-4 pb-4 space-y-1">
-              {navigationItems.map((item, index) => (
-                <Link
-                  key={index}
-                  to={item.link}
-                  className="block text-[#D16160] hover:bg-[#fde8e8] px-4 py-2 rounded-md text-base font-medium transition duration-300"
-                >
-                  <FontAwesomeIcon icon={item.icon} className="mr-2" />
-                  {item.text}
-                </Link>
-              ))}
-              <button
-                onClick={handleLogout}
-                className="w-full text-left text-[#D16160] hover:bg-[#fde8e8] px-4 py-2 rounded-md text-base font-medium transition duration-300"
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
-                Cerrar Sesión
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </nav>
   );
 }

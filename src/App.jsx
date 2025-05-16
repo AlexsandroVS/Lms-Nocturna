@@ -13,7 +13,9 @@ import Loader from "./components/ui/Loader";
 import ProfilePage from "./pages/ProfilePage";
 import ActivityPage from "./pages/ActivityPage";
 import FilesPage from "./pages/FilesPage";
+import SearchResultsPage from "./pages/SearchResultsPage";
 import AdminDashboard from "./admin/AdminDashboard";
+
 
 const DashboardLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
@@ -56,6 +58,7 @@ const App = () => {
               <Route element={<ProtectedRoute layout={DashboardLayout} />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/courses" element={<Courses />} />
+                <Route path="/search-results" element={<SearchResultsPage />} />
                 <Route
                   path="/courses/:courseId/modules/:moduleId"
                   element={<ActivityPage />}
