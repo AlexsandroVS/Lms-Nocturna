@@ -1,6 +1,5 @@
 // src/pages/ProfilePage.jsx
 import { useAuth } from "../context/AuthContext";
-import AdminProfile from "../admin/Aprofile/AdminProfile";
 import UserProfile from "../components/profile/UserProfile";
 
 const ProfilePage = () => {
@@ -10,7 +9,7 @@ const ProfilePage = () => {
     return <div>Por favor, inicia sesión</div>;
   }
 
-  return currentUser.role === "admin" ? <AdminProfile /> : <UserProfile />;
+  return <UserProfile />;
 };
 
 export default ProfilePage;

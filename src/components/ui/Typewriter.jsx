@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { useEffect, useRef, useState } from 'react';
 
 const Typewriter = ({ text, delay = 100, className = '' }) => {

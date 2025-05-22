@@ -14,31 +14,27 @@ export default function Courses() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchProgressAndCourses = async () => {
+    const fetchEnrolledCourses = async () => {
       try {
-        const [progressRes, coursesRes] = await Promise.all([
-          api.get(`/progress/${currentUser.id}`),
+        const [enrollRes, coursesRes] = await Promise.all([
+          api.get(`/enrollments/student/${currentUser.id}/courses`),
           api.get("/courses"),
         ]);
 
-        const courseIds = Array.from(
-          new Set(progressRes.data.map((p) => p.CourseID))
-        );
+        const enrolledCourseIds = enrollRes.data.courseIds || [];
 
         const filteredCourses = coursesRes.data.filter((course) =>
-          courseIds.includes(course.id)
+          enrolledCourseIds.includes(course.id)
         );
 
-        // Obtener promedios por cada curso
         const averageResults = {};
         await Promise.all(
           filteredCourses.map(async (course) => {
             try {
               const res = await api.get(
-                `/grades/user/${currentUser.id}/course/${course.id}/averages`
+                `/averages/${course.id}courseid/${currentUser.id}userid`
               );
-              averageResults[course.id] = res.data.data?.courseAverage || null;
-
+              averageResults[course.id] = res.data?.courseAverage || null;
             } catch {
               averageResults[course.id] = null;
             }
@@ -56,7 +52,7 @@ export default function Courses() {
     };
 
     if (currentUser && !isAdmin) {
-      fetchProgressAndCourses();
+      fetchEnrolledCourses();
     }
   }, [currentUser, api, isAdmin]);
 
@@ -75,7 +71,8 @@ export default function Courses() {
           Mis Cursos
         </h1>
         <p className="text-gray-600">
-          Aquí puedes continuar tu aprendizaje en los cursos donde has comenzado.
+          Aquí puedes continuar tu aprendizaje en los cursos donde has
+          comenzado.
         </p>
       </motion.div>
 

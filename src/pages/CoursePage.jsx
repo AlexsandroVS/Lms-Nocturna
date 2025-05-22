@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,7 +12,6 @@ import EditModuleModal from "../admin/modals/Modules/EditModuleModal";
 import DeleteModuleModal from "../admin/modals/Modules/DeleteModuleModal";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faChevronLeft,
   faPlus,
   faChevronRight,
   faGripLinesVertical,
@@ -28,25 +26,32 @@ const CoursePage = () => {
   const [selectedModule, setSelectedModule] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [averages, setAverages] = useState(null);
+  
   const [loading, setLoading] = useState(true);
 
   const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
   const [showEditModuleModal, setShowEditModuleModal] = useState(false);
   const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
   const [isPanelVisible, setIsPanelVisible] = useState(true);
-
   const fetchAverages = useCallback(async () => {
     try {
       const userId = currentUser?.id;
-      if (!userId) return;
-      const response = await api.get(
-        `/grades/user/${userId}/course/${id}/averages`
-      );
-      setAverages(response.data.data);
+      const role = currentUser?.role;
+      if (!userId || role === "admin" || role === "teacher") return;
+
+      const response = await api.get(`/averages/${id}/${userId}`);
+      setAverages(response.data);
     } catch (err) {
       console.error("Error al obtener promedios:", err);
     }
-  }, [api, currentUser?.id, id]);
+  }, [api, currentUser?.id, currentUser?.role, id]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      // Refresca la página completamente para desmontar el estado actual
+      window.location.href = "/login";
+    }
+  }, [currentUser]);
 
   const fetchModules = useCallback(async () => {
     try {
@@ -186,6 +191,7 @@ const CoursePage = () => {
                   activity={selectedActivity}
                   courseId={id}
                   moduleId={selectedActivity.ModuleID}
+                  currentUser={currentUser}
                 />
               </motion.div>
             ) : (

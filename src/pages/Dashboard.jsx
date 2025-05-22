@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -5,6 +6,8 @@ import Header from "../components/layout/Header";
 import CourseCard from "../components/dashboard/CourseCard";
 import AdminDashboard from "../admin/AdminDashboard";
 import Avatar from "../components/ui/Avatar";
+import NoAccessModal from "../components/ui/NoAccessModal";
+
 import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
@@ -14,9 +17,13 @@ import {
 } from "react-icons/fi";
 
 export default function Dashboard() {
-  const { currentUser, isAdmin,isTeacher, loading, api } = useAuth();
+  const { currentUser, isAdmin, isTeacher, loading, api } = useAuth();
   const [courses, setCourses] = useState([]);
+  const [showNoAccessModal, setShowNoAccessModal] = useState(false);
+
   const [activeBanner, setActiveBanner] = useState(0);
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -53,10 +60,10 @@ export default function Dashboard() {
       return () => clearInterval(interval);
     }
   }, [banners.length]);
-
   useEffect(() => {
     if (currentUser) {
       fetchCourses();
+      fetchAssignments();
     }
   }, [currentUser, api]);
 
@@ -64,6 +71,19 @@ export default function Dashboard() {
     "all",
     ...Array.from(new Set(courses.map((c) => c.category).filter(Boolean))),
   ];
+  const fetchAssignments = async () => {
+  try {
+    const response = await api.get(`/enrollments/student/${currentUser.id}/courses`);
+    if (response.data.success) {
+      setEnrolledCourseIds(response.data.courseIds);
+    } else {
+      setEnrolledCourseIds([]);
+    }
+  } catch (err) {
+    console.error("Error al obtener cursos del estudiante:", err);
+  }
+};
+
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
@@ -97,7 +117,11 @@ export default function Dashboard() {
         <motion.div
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
-          transition={{ repeat: Infinity, repeatType: "reverse", duration: 0.8 }}
+          transition={{
+            repeat: Infinity,
+            repeatType: "reverse",
+            duration: 0.8,
+          }}
           className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-secondary"
         />
       </div>
@@ -107,7 +131,9 @@ export default function Dashboard() {
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-xl text-red-600">Error: No se pudo cargar el usuario.</p>
+        <p className="text-xl text-red-600">
+          Error: No se pudo cargar el usuario.
+        </p>
       </div>
     );
   }
@@ -129,7 +155,9 @@ export default function Dashboard() {
           >
             <Avatar user={currentUser} size="lg" />
             <div>
-              <h2 className="text-lg text-gray-500 font-medium">{getGreeting()}</h2>
+              <h2 className="text-lg text-gray-500 font-medium">
+                {getGreeting()}
+              </h2>
               <motion.h1
                 className="text-2xl text-[#003049] font-bold text-gradient bg-gradient-to-r from-primary to-secondary bg-clip-text"
                 whileHover={{ scale: 1.02 }}
@@ -247,61 +275,76 @@ export default function Dashboard() {
 
           {/* Secciones por categoría */}
           <AnimatePresence>
-            {Object.entries(coursesByCategory).map(([category, list], index) => (
-              <motion.div
-                key={category}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * index }}
-                className="space-y-4"
-              >
-                <h3 className="text-3xl font-bold text-neutral-800 flex items-center">
-                  <span className="w-2 h-6 bg-primary rounded-full mr-2"></span>
-                  {category}
-                </h3>
+            {Object.entries(coursesByCategory).map(
+              ([category, list], index) => (
+                <motion.div
+                  key={category}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="space-y-4"
+                >
+                  <h3 className="text-3xl font-bold text-neutral-800 flex items-center">
+                    <span className="w-2 h-6 bg-primary rounded-full mr-2"></span>
+                    {category}
+                  </h3>
 
-                <div className="relative">
-                  {list.length >= 5 && (
-                    <>
-                      <button
-                        onClick={() => scrollSlider(category, "left")}
-                        className="absolute z-10 -left-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
-                      >
-                        <FiChevronLeft className="text-xl" />
-                      </button>
-                      <button
-                        onClick={() => scrollSlider(category, "right")}
-                        className="absolute z-10 -right-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
-                      >
-                        <FiChevronRight className="text-xl" />
-                      </button>
-                    </>
-                  )}
+                  <div className="relative">
+                    {list.length >= 5 && (
+                      <>
+                        <button
+                          onClick={() => scrollSlider(category, "left")}
+                          className="absolute z-10 -left-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
+                        >
+                          <FiChevronLeft className="text-xl" />
+                        </button>
+                        <button
+                          onClick={() => scrollSlider(category, "right")}
+                          className="absolute z-10 -right-10 top-1/2 -translate-y-1/2 bg-white shadow-md p-2 rounded-full hover:scale-105 transition"
+                        >
+                          <FiChevronRight className="text-xl" />
+                        </button>
+                      </>
+                    )}
 
-                  <div
-                    ref={(el) => {
-                      if (el) categoryRefs.current[category] = el;
-                    }}
-                    className="flex gap-4 overflow-x-auto scrollbar-hidden scroll-smooth px-2 pb-2"
-                  >
-                    {list.map((course) => (
-                      <div
-                        className="min-w-[250px] max-w-[300px] flex-shrink-0"
-                        key={course.id}
-                      >
-                        <CourseCard
-                          course={course}
-                          onClick={() => navigate(`/courses/${course.id}`)}
-                        />
-                      </div>
-                    ))}
+                    <div
+                      ref={(el) => {
+                        if (el) categoryRefs.current[category] = el;
+                      }}
+                      className="flex gap-4 overflow-x-auto scrollbar-hidden scroll-smooth px-2 pb-2"
+                    >
+                      {list.map((course) => (
+                        <div
+                          className="min-w-[250px] max-w-[300px] flex-shrink-0"
+                          key={course.id}
+                        >
+                          <CourseCard
+                            course={course}
+                            onClick={() => {
+                              if (
+                                enrolledCourseIds.includes(course.id) ||
+                                isAdmin ||
+                                isTeacher
+                              ) {
+                                navigate(`/courses/${course.id}`);
+                              } else {
+                                setShowNoAccessModal(true); 
+                              }
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              )
+            )}
           </AnimatePresence>
         </div>
       )}
+      <NoAccessModal open={showNoAccessModal} onClose={() => setShowNoAccessModal(false)} />
+
     </div>
+    
   );
 }

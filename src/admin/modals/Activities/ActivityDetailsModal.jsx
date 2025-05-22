@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef, useMemo } from "react";
@@ -19,10 +20,10 @@ import {
   faFilePdf,
   faFileVideo,
   faFileWord,
-  
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../../context/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
+
 import { Document, Page, pdfjs } from "react-pdf";
 import mammoth from "mammoth";
 
@@ -30,6 +31,8 @@ pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
 const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
   const { api, currentUser } = useAuth();
+  const userId = currentUser?.id || currentUser?.UserID || currentUser?.userId;
+
   const navigate = useNavigate();
   const realModuleId = moduleId || activity?.ModuleID;
   const getFileIcon = (fileType) => {
@@ -38,21 +41,25 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
     if (fileType.startsWith("video/")) return faFileVideo;
     return faFile;
   };
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+
   const [loading, setLoading] = useState({ upload: false, general: false });
   const [uploadError, setUploadError] = useState(null);
   const [adminFiles, setAdminFiles] = useState([]);
   const [studentFiles, setStudentFiles] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [showFiles, setShowFiles] = useState(true);
 
   // Cargar archivos
   const fetchFiles = async () => {
     try {
-      const [usersResp, filesResp] = await Promise.all([
+      const [usersResp, filesResp, submissionsResp] = await Promise.all([
         api.get("/users"),
         api.get(`/activities/${activity.ActivityID}/files`),
+        api.get(`/activities/${activity.ActivityID}/submissions/all`),
       ]);
 
+      
       const adminUserIds = usersResp.data
         .filter((user) => user.Role === "admin")
         .map((user) => user.UserID);
@@ -60,72 +67,99 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
       const adminFiles = filesResp.data.filter((file) =>
         adminUserIds.includes(file.UserID)
       );
+
       const studentFiles = filesResp.data.filter(
         (file) => !adminUserIds.includes(file.UserID)
       );
 
       setAdminFiles(adminFiles);
       setStudentFiles(studentFiles);
+      setSubmissions(submissionsResp.data);
+
     } catch (error) {
-      console.error("Error al obtener archivos:", error);
+      console.error("❌ Error al obtener archivos o entregas:", error);
     }
   };
+  const hasDeadlinePassed = () => {
+  if (!activity?.Deadline) return false;
+
+  const deadline = new Date(activity.Deadline);
+  deadline.setHours(23, 59, 59, 999);
+
+  return new Date() > deadline;
+};
+
 
   useEffect(() => {
-    if (activity) {
+    if (activity && userId) {
       fetchFiles();
     }
-  }, [activity?.ActivityID, api]);
+  }, [activity?.ActivityID, userId]);
 
   // Subir archivo
   const handleFileUpload = async () => {
-    if (!file) {
-      setUploadError("Por favor selecciona un archivo");
+    if (hasReachedLimit) {
+      setUploadError("Has alcanzado el número máximo de intentos permitidos.");
       return;
     }
-
-    const allowedTypes = [
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "video/mp4",
-      "video/webm",
-    ];
-    if (!allowedTypes.includes(file.type)) {
+    if (!files || files.length === 0) {
+      setUploadError("Por favor selecciona al menos un archivo.");
+      return;
+    }
+    if (hasDeadlinePassed()) {
       setUploadError(
-        "Tipo de archivo no permitido. Solo se permiten PDF, Word, MP4, WebM."
+        "La fecha límite ha expirado. No se pueden subir entregas."
       );
       return;
     }
-
-    setLoading((prev) => ({ ...prev, upload: true }));
     setUploadError(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("courseId", courseId);
+    setLoading((prev) => ({ ...prev, upload: true }));
 
     try {
-      await api.post(
-        `/courses/${courseId}/modules/${moduleId}/activities/${activity.ActivityID}/files`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+      // 1. Crear la entrega (submission) sin archivos
+      const submissionResp = await api.post(
+        `/activities/${activity.ActivityID}/submissions`
       );
-      alert("Archivo subido con éxito");
-      fetchFiles();
+
+      const submissionId = submissionResp.data.submissionId;
+
+      if (!submissionId) {
+        throw new Error("No se pudo crear la entrega.");
+      }
+
+      // 2. Subir archivos uno por uno asociados a la entrega creada
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        await api.post(`/submissions/${submissionId}/files`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+      }
+
+      // 3. Refrescar datos y limpiar archivos
+      await fetchFiles();
+      setFiles([]);
     } catch (error) {
-      setUploadError("Error al subir el archivo. Inténtalo nuevamente.");
+      const msg =
+        error?.response?.data?.message || "Error inesperado al subir archivos.";
+      setUploadError(msg);
     } finally {
       setLoading((prev) => ({ ...prev, upload: false }));
-      setFile(null);
     }
   };
+
+  const usedAttempts = useMemo(() => {
+    const count = new Set(submissions.map((s) => s.SubmissionID)).size;
+    return count;
+  }, [submissions]);
+
   const hasReachedLimit = useMemo(() => {
-    const max = activity?.MaxAttempts || 1;
-    const currentUserFiles = studentFiles.filter(file => file.UserID === currentUser?.userId);
-    return currentUserFiles.length >= max;
-  }, [studentFiles, activity?.MaxAttempts, currentUser?.userId]);
-  
+    const max = activity?.MaxSubmissions || 1;
+    const count = new Set(submissions.map((s) => s.SubmissionID)).size;
+    const reached = count >= max;
+    return reached;
+  }, [submissions, activity?.MaxSubmissions]);
 
   const FileCard = ({ file, showDetails = true }) => {
     const [cardLoading, setCardLoading] = useState(false);
@@ -433,151 +467,251 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
       </div>
       {/* Subida de Archivos */}
       {["student", "user"].includes(currentUser?.role) && (
-       <div className="mt-8 bg-white p-6 rounded-2xl ">
-       <div className="flex items-center gap-3 mb-6">
-         <div className="p-2 bg-blue-100 rounded-lg">
-           <FontAwesomeIcon icon={faUpload} className="text-blue-600 text-lg" />
-         </div>
-         <h3 className="text-2xl font-semibold text-gray-900">Entregar tarea</h3>
-       </div>
-     
-       <div className="flex items-center gap-3 mb-6 bg-blue-50/50 p-4 rounded-xl">
-         <FontAwesomeIcon icon={faInfoCircle} className="text-blue-400" />
-         <p className="text-sm text-gray-600 mb-4">
-  Intentos usados:{" "}
-  <strong>
-    {
-      studentFiles.filter((file) => file.UserID === currentUser?.userId).length
-    }
-  </strong>{" "}
-  / <strong>{activity?.MaxAttempts || 1}</strong>
-</p>
+        <div className="mt-8 bg-white p-6 rounded-2xl ">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FontAwesomeIcon
+                icon={faUpload}
+                className="text-blue-600 text-lg"
+              />
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-900">
+              Entregar tarea
+            </h3>
+          </div>
 
-       </div>
-     
-       {hasReachedLimit ? (
-         <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start gap-3 mb-4">
-           <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-400 mt-1" />
-           <div>
-             <p className="text-red-600 font-medium">Límite alcanzado</p>
-             <p className="text-red-500 text-sm">
-               Ya has utilizado todos los intentos permitidos para esta actividad.
-             </p>
-           </div>
-         </div>
-       ) : (
-         <div className="space-y-4">
-           <div className="relative group">
-             <input
-               type="file"
-               onChange={(e) => setFile(e.target.files[0])}
-               accept=".pdf,.doc,.docx,.pptx,.mp4,.webm"
-               className="w-full opacity-0 absolute inset-0 cursor-pointer"
-               id="fileInput"
-             />
-             <label
-               htmlFor="fileInput"
-               className="block w-full p-8 border-2 border-dashed border-gray-200 hover:border-blue-300 rounded-xl transition-all group-hover:bg-blue-50/20 cursor-pointer"
-             >
-               <div className="text-center space-y-2">
-                 <FontAwesomeIcon icon={faCloudUpload} className="text-3xl text-blue-400 mb-2" />
-                 <p className="text-gray-600 font-medium">
-                   {file ? file.name : "Arrastra tu archivo aquí o haz clic para seleccionar"}
-                 </p>
-                 <p className="text-sm text-gray-400">Formatos permitidos: PDF, Word, MP4, WebM</p>
-               </div>
-             </label>
-           </div>
-     
-           {uploadError && (
-             <div className="bg-red-50 p-3 rounded-lg flex items-center gap-2 text-red-600 text-sm">
-               <FontAwesomeIcon icon={faExclamationCircle} />
-               <span>{uploadError}</span>
-             </div>
-           )}
-     
-           <button
-             onClick={handleFileUpload}
-             disabled={loading.upload}
-             className={`w-full py-3.5 px-6 rounded-xl font-semibold transition-all ${
-               loading.upload
-                 ? "bg-gray-200 cursor-wait text-gray-500"
-                 : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-200"
-             }`}
-           >
-             {loading.upload ? (
-               <>
-                 <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                 Subiendo...
-               </>
-             ) : (
-               <>
-                 <FontAwesomeIcon icon={faPaperPlane} className="mr-2" />
-                 Enviar entrega
-               </>
-             )}
-           </button>
-         </div>
-       )}
-     
-       {studentFiles.length > 0 && (
-         <div className="mt-8 space-y-4">
-           <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-             <FontAwesomeIcon icon={faClipboardList} className="text-gray-400" />
-             Historial de entregas
-           </h4>
-     
-           {studentFiles.map((file) => (
-             <div
-               key={file.FileID}
-               className="bg-white p-4 rounded-xl shadow-xs border-l-4 border-blue-200 hover:border-blue-300 transition-all"
-             >
-               <div className="space-y-3">
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                     <FontAwesomeIcon
-                       icon={getFileIcon(file.FileType)}
-                       className="text-blue-400 text-lg"
-                     />
-                     <span className="font-medium text-gray-900">{file.FileName}</span>
-                   </div>
-                   <span className="text-sm text-gray-500">
-                     {new Date(file.UploadedAt).toLocaleDateString()}
-                   </span>
-                 </div>
-     
-                 <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <label className="text-xs font-medium text-gray-400">Calificación</label>
-                     <div className="text-lg font-semibold text-blue-600">
-                       {file.Score != null ? (
-                         <>
-                           {file.Score}/20
-                           <span className="ml-2 text-sm text-green-500">
-                             ({((file.Score / 20) * 100).toFixed(1)}%)
-                           </span>
-                         </>
-                       ) : (
-                         <span className="text-gray-400">Pendiente</span>
-                       )}
-                     </div>
-                   </div>
-     
-                   <div>
-                     <label className="text-xs font-medium text-gray-400">Retroalimentación</label>
-                     <div className="p-3 bg-gray-50 rounded-lg text-gray-700 text-sm whitespace-pre-line">
-                       {file.Feedback?.trim() || (
-                         <span className="text-gray-400">Sin comentarios</span>
-                       )}
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           ))}
-         </div>
-       )}
-     </div>
+          <div className="flex items-center gap-3 mb-6 bg-blue-50/50 p-4 rounded-xl">
+            <FontAwesomeIcon icon={faInfoCircle} className="text-blue-400" />
+            <p className="text-sm text-gray-600 mb-4">
+              Intentos usados: <strong>{usedAttempts}</strong> /{" "}
+              <strong>{activity?.MaxSubmissions || 1}</strong>
+              {hasReachedLimit && (
+                <span className="ml-4 px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-full">
+                  Has alcanzado el máximo de intentos
+                </span>
+              )}
+            </p>
+          </div>
+
+          {hasDeadlinePassed() ? (
+            <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 flex items-start gap-3 mb-4">
+              <FontAwesomeIcon
+                icon={faExclamationTriangle}
+                className="text-yellow-500 mt-1"
+              />
+              <div>
+                <p className="text-yellow-700 font-medium">
+                  Entrega no permitida
+                </p>
+                <p className="text-yellow-600 text-sm">
+                  Ya pasó la fecha límite de entrega para esta actividad.
+                </p>
+              </div>
+            </div>
+          ) : hasReachedLimit ? (
+            <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-start gap-3 mb-4">
+              <FontAwesomeIcon
+                icon={faExclamationTriangle}
+                className="text-red-400 mt-1"
+              />
+              <div>
+                <p className="text-red-600 font-medium">Límite alcanzado</p>
+                <p className="text-red-500 text-sm">
+                  Ya has utilizado todos los intentos permitidos para esta
+                  actividad.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="relative group">
+                <input
+                  type="file"
+                  multiple
+                  onChange={(e) =>
+                    setFiles((prev) => [...prev, ...Array.from(e.target.files)])
+                  }
+                  accept=".pdf,.doc,.docx,.pptx,.mp4,.webm"
+                  className="w-full opacity-0 absolute inset-0 cursor-pointer"
+                  id="fileInput"
+                />
+
+                <label
+                  htmlFor="fileInput"
+                  className="block w-full p-8 border-2 border-dashed border-slate-300 hover:border-blue-300 rounded-xl transition-all cursor-pointer"
+                >
+                  <div className="text-center space-y-2">
+                    <FontAwesomeIcon
+                      icon={faCloudUpload}
+                      className="text-3xl text-blue-400 mb-2"
+                    />
+                    {files.length > 0 ? (
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        {files.map((f, i) => (
+                          <li key={i} className="truncate">
+                            {f.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-gray-600 font-medium">
+                        Haz clic o arrastra tus archivos aquí
+                      </p>
+                    )}
+                    <p className="text-sm text-gray-400">
+                      Tipos permitidos: PDF, Word, MP4, WebM
+                    </p>
+                  </div>
+                </label>
+
+                {/* 🆕 Botón adicional para agregar archivos */}
+                <div className="text-center mt-2">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("fileInput").click()}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    + Agregar más archivos
+                  </button>
+                </div>
+              </div>
+
+              {uploadError && (
+                <div className="bg-red-50 p-3 rounded-lg flex items-center gap-2 text-red-600 text-sm">
+                  <FontAwesomeIcon icon={faExclamationCircle} />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              <button
+                onClick={handleFileUpload}
+                disabled={loading.upload || hasReachedLimit}
+                className={`w-full py-3.5 px-6 rounded-xl font-semibold transition-all ${
+                  loading.upload || hasReachedLimit
+                    ? "bg-gray-200 cursor-not-allowed text-gray-500"
+                    : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-blue-200"
+                }`}
+              >
+                {loading.upload ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faPaperPlane} className="mr-2" />
+                    Enviar entrega
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
+          {submissions
+            .filter((s) => s.UserID === userId)
+            .sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt))
+            .length > 0 && (
+            <div className="mt-8 space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <FontAwesomeIcon
+                  icon={faClipboardList}
+                  className="text-gray-400"
+                />
+                Historial de entregas
+              </h4>
+
+              {submissions
+                .filter((s) => s.UserID === userId)
+                .sort(
+                  (a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt)
+                )
+                .map((submission) => (
+                  <div
+                    key={submission.SubmissionID}
+                    className="bg-white p-4 rounded-xl shadow-xs border-l-4 border-blue-200 hover:border-blue-300 transition-all"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="text-sm text-gray-600">
+                        Entrega N.º {submission.AttemptNumber} ·{" "}
+                        {new Date(submission.SubmittedAt).toLocaleString()}
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full font-medium text-white bg-blue-400">
+                        {submission.IsFinal
+                          ? "Entrega final"
+                          : "Intento parcial"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-400">
+                          Calificación
+                        </label>
+                        <div className="text-lg font-semibold text-blue-600">
+                          {submission.Score != null ? (
+                            <>
+                              {submission.Score}/20
+                              <span className="ml-2 text-sm text-green-500">
+                                ({((submission.Score / 20) * 100).toFixed(1)}%)
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-gray-400">Pendiente</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium text-gray-400">
+                          Retroalimentación
+                        </label>
+                        <div className="p-3 bg-gray-50 rounded-lg text-gray-700 text-sm whitespace-pre-line">
+                          {submission.Feedback?.trim() || (
+                            <span className="text-gray-400">
+                              Sin comentarios
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3">
+                      {submission.files && submission.files.length > 0 ? (
+                        submission.files.map((file) => (
+                          <div
+                            key={file.FileID}
+                            className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2 text-gray-700">
+                              <FontAwesomeIcon
+                                icon={getFileIcon(file.FileType)}
+                              />
+                              <span className="truncate max-w-[200px]">
+                                {file.FileName}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const url = `http://localhost:5000/${file.Files}`;
+                                window.open(url, "_blank");
+                              }}
+                              className="text-blue-500 hover:text-blue-700 text-sm"
+                            >
+                              Ver archivo
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 italic">
+                          Sin archivos en esta entrega.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

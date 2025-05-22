@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -49,8 +50,6 @@ const ModuleList = ({
   // Menú hamburguesa por actividad
   const [openMenuActivityId, setOpenMenuActivityId] = useState(null);
 
-  
-
   // Cargar actividades de cada módulo
   const fetchActivities = async (courseId, moduleId) => {
     try {
@@ -72,6 +71,7 @@ const ModuleList = ({
         fetchActivities(mod.CourseID, mod.ModuleID);
       }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modules, activitiesByModule, api]);
 
   // Bloquear / Desbloquear
@@ -105,29 +105,36 @@ const ModuleList = ({
   // Crear actividad
   const handleCreateActivity = async (newActivity) => {
     if (!selectedModuleId) return false;
+
     const formData = new FormData();
     formData.append("title", newActivity.title);
     formData.append("content", newActivity.content);
-    formData.append("type", newActivity.type);
-    formData.append("file", newActivity.file);
     formData.append("deadline", newActivity.deadline);
-    formData.append("maxAttempts", newActivity.maxAttempts);
+    formData.append("maxSubmissions", newActivity.maxSubmissions);
+
+    console.log("📎 Archivos recibidos:", newActivity.files);
+    for (let file of newActivity.files) {
+      formData.append("file", file); // 🔥 ¡Este debe llamarse "file" y repetirse!
+    }
 
     try {
-      await api.post(
+      const response = await api.post(
         `/courses/${modules[0].CourseID}/modules/${selectedModuleId}/activities`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       await fetchActivities(modules[0].CourseID, selectedModuleId);
-
       setShowCreateModal(false);
       setSelectedModuleId(null);
-      return true; // <-- éxito
+      return true;
     } catch (error) {
       console.error("❌ Error al crear la actividad:", error);
-      return false; // <-- error
+      return false;
     }
   };
 
@@ -153,10 +160,12 @@ const ModuleList = ({
   };
 
   // Manejar clic en "Ver" o "Ver calificaciones"
-  const handleViewClick = (activity, e) => {
+  const handleViewClick = (activity, mod, e) => {
     e.stopPropagation();
-    if (currentUser?.role === "admin") {
-      navigate(`/files/${activity.ActivityID}`);
+    if (currentUser?.role === "admin" || currentUser?.role === "teacher") {
+      navigate(
+        `/courses/${modules[0].CourseID}/modules/${mod.ModuleID}/activities/${activity.ActivityID}/files`
+      );
     } else {
       onShowActivityDetail(activity);
     }
@@ -396,7 +405,7 @@ const ModuleList = ({
                               ? "bg-blue-600 hover:bg-blue-700 text-white"
                               : "bg-red-600 hover:bg-red-700 text-white"
                           }`}
-                          onClick={(e) => handleViewClick(activity, e)}
+                          onClick={(e) => handleViewClick(activity, mod, e)}
                         >
                           <FontAwesomeIcon
                             icon={
@@ -406,7 +415,8 @@ const ModuleList = ({
                             }
                           />
                           <span>
-                            {currentUser?.role === "admin"
+                            {currentUser?.role === "admin" ||
+                            currentUser?.role === "teacher"
                               ? "Ver entregas"
                               : "Ver"}
                           </span>

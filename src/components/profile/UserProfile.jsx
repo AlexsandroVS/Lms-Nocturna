@@ -3,15 +3,14 @@ import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
-  faPlus,
-  faUser,
-  faClock,
   faGraduationCap,
+  faUser,
   faPen,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../context/AuthContext";
 import StatCard from "./StatCard";
 import defaultAvatar from "../../../public/img/admin-avatar.jpg";
+
 
 const SERVER_URL = "http://localhost:5000";
 
@@ -24,44 +23,68 @@ export default function UserProfile() {
     email: "",
     avatar: "",
     bio: "",
+    interests: "",
   });
-
   const [imageFile, setImageFile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [averageProgress, setAverageProgress] = useState(0);
-  const [studyHours, setStudyHours] = useState(0);
+  const [enrolledCourses, setEnrolledCourses] = useState(0);
+  const [averageScore, setAverageScore] = useState(null);
 
-  useEffect(() => {
-    if (currentUser) {
-      const avatarUrl = !currentUser.avatar
-        ? defaultAvatar
-        : currentUser.avatar.startsWith("http")
-        ? currentUser.avatar
-        : `${SERVER_URL}${currentUser.avatar}`;
+  // 👉 Carga de número de cursos y promedio
+useEffect(() => {
+  if (!currentUser) return;
 
-      setFormData({
-        name: currentUser.name || "",
-        email: currentUser.email || "",
-        avatar: avatarUrl,
-        bio: currentUser.bio || "",
-      });
+  (async () => {
+    try {
+      // 🔹 1. Obtener cursos inscritos
+      const coursesRes = await api.get(
+        `/enrollments/student/${currentUser.id}/courses`
+      );
+      const totalCursos = coursesRes.data.courseIds.length || 0;
+      setEnrolledCourses(totalCursos);
+ 
+
+      // 🔹 2. Obtener promedio general
+      const avgRes = await api.get(`/averages/overall/${currentUser.id}`);
+      const data = avgRes.data;
+
+
+      const promedioValido =
+        data && typeof data.courseAverage === "number";
+
+      setAverageScore(
+        promedioValido ? data.courseAverage.toFixed(1) : "N/A"
+      );
+    } catch (e) {
+      console.error("❌ Error al obtener cursos o promedio:", e);
+      setAverageScore("N/A");
+      setEnrolledCourses(0);
     }
+  })();
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [currentUser]);
 
-    const fetchProgress = async () => {
-      try {
-        const res = await api.get(`/progress/${currentUser.id}`);
-        const uniqueCourses = [...new Set(res.data.map((p) => p.CourseID))];
-        setAverageProgress(Math.round((uniqueCourses.length / 10) * 100));
-        setStudyHours(uniqueCourses.length * 5);
-      } catch (e) {
-        console.error("Error al cargar progreso:", e);
-      }
-    };
 
-    fetchProgress();
-  }, [currentUser]);
+  // 👉 Inicializa el formulario con datos de usuario
+useEffect(() => {
+  if (!currentUser) return;
+
+  const avatarUrl = !currentUser.avatar
+    ? defaultAvatar
+    : currentUser.avatar.startsWith("http")
+    ? currentUser.avatar
+    : `${SERVER_URL}${currentUser.avatar}`;
+
+  setFormData({
+    name: currentUser.name || "",
+    email: currentUser.email || "",
+    avatar: avatarUrl,
+    bio: currentUser.bio || currentUser.biografia || "", // ✅
+    interests: currentUser.interests || currentUser.intereses || "",
+  });
+}, [currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,12 +105,12 @@ export default function UserProfile() {
   const handleSave = async () => {
     setLoading(true);
     setError("");
-
     try {
       const form = new FormData();
       form.append("name", formData.name);
       form.append("email", formData.email);
       form.append("bio", formData.bio);
+      form.append("interests", formData.interests);
       if (imageFile) form.append("avatar", imageFile);
 
       const res = await api.put(`/users/${currentUser.id}`, form);
@@ -95,6 +118,8 @@ export default function UserProfile() {
       updated.avatar = updated.avatar?.startsWith("http")
         ? updated.avatar
         : `${SERVER_URL}${updated.avatar}`;
+      updated.bio = updated.bio || updated.biografia;
+      updated.interests = updated.interests || updated.intereses;
       setCurrentUser(updated);
       setEditing(false);
     } catch (err) {
@@ -107,7 +132,7 @@ export default function UserProfile() {
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-8 bg-gray-50">
-      {/* Encabezado */}
+      {/* ================= Encabezado ================= */}
       <motion.div
         className="flex flex-col md:flex-row gap-8 bg-white p-6 rounded-2xl shadow-xs border-l-4 border-[#6802C1]"
         initial={{ opacity: 0, y: 20 }}
@@ -129,9 +154,9 @@ export default function UserProfile() {
                 className="absolute inset-0 rounded-full flex items-center justify-center cursor-pointer"
                 onClick={() => fileInputRef.current.click()}
                 initial={{ opacity: 0 }}
-                whileHover={{ 
+                whileHover={{
                   opacity: 1,
-                  background: 'rgba(59, 130, 246, 0.2)'
+                  background: "rgba(59, 130, 246, 0.2)",
                 }}
                 transition={{ duration: 0.2 }}
               >
@@ -150,30 +175,24 @@ export default function UserProfile() {
           )}
         </div>
 
-        {/* Info */}
+        {/* Info usuario */}
         <div className="flex-1 space-y-5">
           {editing ? (
             <>
-              <div className="relative">
-                <input
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="text-2xl font-bold w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Tu nombre"
-                />
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
-              </div>
-              <div className="relative">
-                <input
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="text-gray-600 w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="tu@email.com"
-                />
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
-              </div>
+              <input
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="text-2xl font-bold w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="Tu nombre"
+              />
+              <input
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="text-gray-600 w-full bg-gray-50 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="tu@email.com"
+              />
             </>
           ) : (
             <>
@@ -190,28 +209,17 @@ export default function UserProfile() {
               disabled={loading}
               className={`px-5 py-2.5 text-white font-medium rounded-lg transition-all flex items-center gap-2 ${
                 editing
-                  ? "bg-green-500 hover:bg-green-600 shadow-green-sm"
-                  : "bg-[#6802C1] hover:bg-[#8257a7] shadow-blue-sm"
-              } shadow-sm ${loading ? "opacity-80" : ""}`}
+                  ? "bg-green-500 hover:bg-green-600"
+                  : "bg-[#6802C1] hover:bg-[#8257a7]"
+              } ${loading ? "opacity-80" : ""}`}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
             >
               {editing ? (
-                loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Guardando...
-                  </>
-                ) : (
-                  "Guardar cambios"
-                )
+                "Guardar cambios"
               ) : (
                 <>
-                  <FontAwesomeIcon icon={faEdit} className="text-sm" />
-                  Editar perfil
+                  <FontAwesomeIcon icon={faEdit} /> Editar perfil
                 </>
               )}
             </motion.button>
@@ -226,7 +234,7 @@ export default function UserProfile() {
               </motion.button>
             )}
             {error && (
-              <motion.p 
+              <motion.p
                 className="text-red-500 text-sm px-3 py-1 bg-red-50 rounded-lg"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -238,130 +246,71 @@ export default function UserProfile() {
         </div>
       </motion.div>
 
-      {/* Estadísticas */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-5"
+      {/* ================= StatCards + Gráfico ================= */}
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
       >
-        <StatCard 
-          icon={faUser} 
-          title="Progreso" 
-          value={`${averageProgress}%`} 
-          color="#B272FD"
-          indicator={
-            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-blue-100 overflow-hidden rounded-b-lg">
-              <div 
-                className="h-full bg-blue-500" 
-                style={{ width: `${averageProgress}%` }}
-              ></div>
-            </div>
-          }
-        />
-        <StatCard 
-          icon={faGraduationCap} 
-          title="Cursos Iniciados" 
-          value={Math.floor(averageProgress / 10)} 
+        <StatCard
+          icon={faGraduationCap}
+          title="Cursos Inscritos"
+          value={enrolledCourses}
           color="#B272FD"
         />
-        <StatCard 
-          icon={faClock} 
-          title="Horas Totales" 
-          value={studyHours} 
+
+        <StatCard
+          icon={faUser}
+          title="Promedio General"
+          value={averageScore}
           color="#B272FD"
         />
+
       </motion.div>
 
-      {/* Bio e Intereses */}
+      {/* ================= Bio e Intereses ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  {/* Bio - Sección mejorada */}
-  <motion.div 
-    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500 space-y-4"
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.2 }}
-  >
-    <div className="flex items-center gap-3">
-      <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
-      <h3 className="text-lg font-semibold text-gray-800">
-        Acerca de mí
-      </h3>
-      {editing && (
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="ml-auto"
+        <motion.div
+          className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500 space-y-4"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
         >
-          <FontAwesomeIcon 
-            icon={faPen} 
-            className="text-gray-500 hover:text-purple-500 transition-colors cursor-pointer" 
-          />
-        </motion.button>
-      )}
-    </div>
-    
-    {editing ? (
-      <div className="relative group">
-        <textarea
-          rows={4}
-          value={formData.bio}
-          name="bio"
-          onChange={handleChange}
-          className="w-full p-3 bg-red-50 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-200 transition-all border border-red-100"
-          placeholder="Cuéntanos sobre ti, tus intereses y objetivos..."
-        />
-        <div className="absolute bottom-2 left-3 right-3 h-0.5 bg-red-200 scale-x-0 group-focus-within:scale-x-100 origin-left transition-transform"></div>
-      </div>
-    ) : (
-      <p className="text-sm text-gray-700 leading-relaxed bg-red-50/30 p-3 rounded-lg">
-        {formData.bio || (
-          <span className="text-gray-500 italic">Sin descripción aún. Haz clic en Editar perfil para añadir una biografía.</span>
-        )}
-      </p>
-    )}
-  </motion.div>
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Acerca de mí
+            </h3>
+            {editing && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="ml-auto"
+              >
+                <FontAwesomeIcon
+                  icon={faPen}
+                  className="text-gray-500 hover:text-purple-500"
+                />
+              </motion.button>
+            )}
+          </div>
 
-  {/* Intereses - Sección mejorada */}
-  <motion.div 
-    className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500 space-y-4"
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.3 }}
-  >
-    <div className="flex items-center gap-3">
-      <div className="w-2 h-6 bg-purple-500 rounded-full"></div>
-      <h3 className="text-lg font-semibold text-gray-800">
-        Intereses
-      </h3>
-    </div>
-    
-    <div className="flex flex-wrap gap-3">
-      {["Programación", "Diseño UI/UX", "JavaScript", "Aprendizaje continuo", "React", "Node.js"].map((interest) => (
-        <motion.span
-          key={interest}
-          className="px-3 py-1.5 bg-red-50 text-purple-700 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-red-800 transition-colors cursor-default flex items-center gap-2"
-          whileHover={{ scale: 1.05, boxShadow: "0 2px 8px rgba(239, 68, 68, 0.2)" }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-          {interest}
-        </motion.span>
-      ))}
-      
-      {editing && (
-        <motion.button 
-          className="px-3 py-1.5 bg-red-50 text-purple-600 text-sm rounded-lg font-medium hover:bg-red-100 hover:text-purple-700 transition-colors flex items-center gap-2"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <FontAwesomeIcon icon={faPlus} className="text-xs" />
-          Añadir
-        </motion.button>
-      )}
-    </div>
-  </motion.div>
-</div>
+          <textarea
+            value={formData.bio}
+            name="bio"
+            onChange={handleChange}
+            disabled={!editing}
+            className={`w-full p-3 rounded-lg text-sm outline-none transition-all border ${
+              editing
+                ? "bg-white focus:ring-2 focus:ring-purple-200 border-purple-100"
+                : "bg-gray-50 border-transparent"
+            }`}
+            placeholder="Cuéntanos sobre ti..."
+            rows={4}
+          />
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import Typewriter from "../components/ui/Typewriter"
 
 function Login() {
   const navigate = useNavigate();
-  const { login, finalizeLogin, currentUser } = useAuth();
+  const { login, currentUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState({ type: null, message: "" });
@@ -29,6 +29,7 @@ function Login() {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => checkCredentials(), 1000);
     return () => clearTimeout(timerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password]);
 
 
@@ -38,7 +39,6 @@ function Login() {
       const response = await login(email, password);
       if (response.success) {
         setStatus({ type: "success", message: "✅ Credenciales correctas" });
-        setTimeout(() => finalizeLogin(response.user), 1000);
       } else {
         setStatus({ type: "error", message: "❌ Credenciales incorrectas" });
       }

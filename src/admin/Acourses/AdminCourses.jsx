@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
@@ -41,7 +43,7 @@ const AdminCoursesDashboard = () => {
       setLoading(false);
     }
   };
-  console.log(currentUser)
+
   // Obtener cursos asignados al docente actual
   const getTeacherCourses = () => {
     if (!isTeacher || !currentUser?.id) return [];

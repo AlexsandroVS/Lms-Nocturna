@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/files/PDFPreviewModal.jsx
 import { useEffect, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";

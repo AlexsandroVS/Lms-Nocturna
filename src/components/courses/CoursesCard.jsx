@@ -37,9 +37,11 @@ const STATUS_CONFIG = {
   draft: { color: "bg-blue-100 text-blue-700", label: "Borrador" },
 };
 
-const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
+const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete, onRestrictedAccess }) => {
   const navigate = useNavigate();
   const { api, currentUser } = useAuth();
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+
   const [courseAverage, setCourseAverage] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -60,14 +62,16 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
 
   useEffect(() => {
     const fetchCourseAverage = async () => {
-      if (!currentUser?.id) return;
+      const role = currentUser?.role;
+      const userId = currentUser?.id;
+
+      // No calcular promedio si es admin o teacher
+      if (!userId || role === "admin" || role === "teacher") return;
 
       try {
-        const response = await api.get(
-          `/grades/user/${currentUser.id}/course/${id}/averages`
-        );
-        if (response.data.success) {
-          const percentage = response.data.data.courseAverage * 5;
+        const response = await api.get(`/averages/${id}/${userId}`);
+        const percentage = response.data?.courseAverage * 5;
+        if (!isNaN(percentage)) {
           setCourseAverage(percentage);
         }
       } catch (error) {
@@ -76,9 +80,36 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
     };
 
     fetchCourseAverage();
-  }, [api, currentUser?.id, id]);
+  }, [api, currentUser?.id, currentUser?.role, id]);
 
-  const handleCardClick = () => navigate(`/courses/${id}`);
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      if (currentUser?.role === "student") {
+        try {
+          const res = await api.get(
+            `/enrollments/student/${currentUser.id}/courses`
+          );
+          setEnrolledCourseIds(res.data.courseIds || []);
+        } catch (err) {
+          console.error("Error al obtener inscripciones:", err);
+        }
+      }
+    };
+    fetchEnrollments();
+  }, [api, currentUser]);
+
+const handleCardClick = () => {
+  const role = currentUser?.role;
+  const isEnrolled = enrolledCourseIds.includes(id);
+
+  const canAccess = role === "admin" || role === "teacher" || isEnrolled;
+
+  if (canAccess) {
+    navigate(`/courses/${id}`);
+  } else if (typeof onRestrictedAccess === "function") {
+    onRestrictedAccess(course); 
+  }
+};
 
   const handleAdminClick = (e, callback) => {
     e.preventDefault();
@@ -112,7 +143,7 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
       <div className="flex justify-between items-start mb-4 z-10">
         {/* Admin Actions */}
         {isAdmin && (
-          <motion.div 
+          <motion.div
             className="flex gap-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: isHovered ? 1 : 0 }}
@@ -144,9 +175,9 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
         {/* Course Icon */}
         <div
           className="w-10 h-10 flex items-center justify-center rounded-lg backdrop-blur-sm shadow-sm"
-          style={{ 
+          style={{
             backgroundColor: `${color}20`,
-            border: `1px solid ${color}30`
+            border: `1px solid ${color}30`,
           }}
         >
           <FontAwesomeIcon
@@ -164,7 +195,10 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
             {durationHours > 0 && (
               <span className="flex items-center gap-1 text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                <FontAwesomeIcon icon={faClock} className="text-[0.8em] opacity-70" />
+                <FontAwesomeIcon
+                  icon={faClock}
+                  className="text-[0.8em] opacity-70"
+                />
                 {durationHours}h
               </span>
             )}
@@ -194,7 +228,9 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete }) => {
           {courseAverage > 0 && (
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-500">Progreso</span>
+                <span className="text-xs font-medium text-gray-500">
+                  Progreso
+                </span>
                 <span className="text-xs font-semibold" style={{ color }}>
                   {Math.round(courseAverage)}%
                 </span>

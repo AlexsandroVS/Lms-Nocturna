@@ -16,7 +16,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useParams } from "react-router-dom";
 
 const EditActivityModal = ({ activity, onClose, onUpdate }) => {
-  const { api, currentUser } = useAuth();
+  const { api } = useAuth();
   const { courseId } = useParams();
 
   const [error, setError] = useState("");
@@ -28,7 +28,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
     description: "",
     type: "document",
     deadline: "",
-    maxAttempts: 1,
+    MaxSubmissions: 1,
   });
 
   const [files, setFiles] = useState([]);
@@ -53,7 +53,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
         description: activity.Content || "",
         type: activity.Type || "document",
         deadline: activity.Deadline ? activity.Deadline.split("T")[0] : "",
-        maxAttempts: activity.MaxAttempts || 1,
+        MaxSubmissions: activity.MaxSubmissions || 1,
       });
     }
   }, [activity, api]);
@@ -70,12 +70,11 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
       await api.put(`/activities/${activity.ActivityID}`, {
         title: formData.title.trim(),
         content: formData.description.trim(),
-        type: formData.type,
         deadline: formData.deadline || null,
-        maxAttempts: formData.maxAttempts || 1,
+        maxSubmissions: formData.MaxSubmissions || 1,
       });
 
-      onUpdate(); // ← solo notifica que se actualizó
+      onUpdate(); 
       onClose();
     } catch (error) {
       console.error("Error actualizando actividad:", error);
@@ -83,7 +82,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
     } finally {
       setLoadingSubmit(false);
     }
-  };  
+  };
 
   const handleDeleteFile = async (fileId) => {
     try {
@@ -249,14 +248,14 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
           </div>
           <Input
             label="Intentos máximos de entrega"
-            name="maxAttempts"
+            name="MaxSubmissions"
             type="number"
             min="1"
-            value={formData.maxAttempts}
+            value={formData.MaxSubmissions}
             onChange={(e) =>
               setFormData((prev) => ({
                 ...prev,
-                maxAttempts: parseInt(e.target.value, 10) || 1,
+                MaxSubmissions: parseInt(e.target.value, 10) || 1,
               }))
             }
           />

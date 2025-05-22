@@ -1,5 +1,6 @@
+/* eslint-disable react/prop-types */
 import { motion } from "framer-motion";
-
+import { useState } from "react";
 export default function UserModal({ user, onClose, onSave }) {
   const [formData, setFormData] = useState(user || {
     name: '',

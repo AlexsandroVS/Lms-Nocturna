@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -39,11 +41,16 @@ export function AuthProvider({ children }) {
       } catch (error) {
         console.error("Error verificando autenticación:", error.response?.data);
         if (error.response?.status === 401) {
-          await logout(); // Si el token es inválido, se cierra la sesión
+          // El token ya no es válido, limpiamos sin llamar al backend
+          localStorage.removeItem("jwtToken");
+          localStorage.removeItem("userData");
+          setCurrentUser(null);
         }
       }
     } else {
-      await logout(); // Si no se encuentran los datos, desloguear
+      localStorage.removeItem("jwtToken");
+      localStorage.removeItem("userData");
+      setCurrentUser(null);
     }
 
     setLoading(false); // Cambiar el estado de carga

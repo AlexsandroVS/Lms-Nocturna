@@ -1,5 +1,4 @@
-/* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,354 +7,209 @@ import {
   faSpinner,
   faExclamationTriangle,
   faFile,
-  faFilePdf,
-  faFileWord,
-  faVideo,
+  faPlus,
 } from "@fortawesome/free-solid-svg-icons";
 
+// eslint-disable-next-line react/prop-types
 const CreateActivityModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    type: "",
-    file: null,
     deadline: "",
-    maxAttempts: 1,
+    maxSubmissions: 1,
+    files: [],
   });
+  const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === "maxAttempts" ? parseInt(value, 10) || 1 : value,
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "maxSubmissions" ? parseInt(value, 10) || 1 : value,
+    }));
   };
-  
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      let allowedTypes = [];
-      let errorMessage = "";
-
-      switch (formData.type) {
-        case "Documento":
-          allowedTypes = [
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          ];
-          errorMessage = "Solo se permiten documentos PDF, Word y PPTX";
-          break;
-        case "Video":
-          allowedTypes = [
-            "video/mp4", // MP4
-            "video/x-msvideo", // AVI
-            "video/quicktime", // MOV
-            "video/webm", // WebM
-            "video/mpeg", // MPEG
-            "video/x-matroska", // MKV
-          ];
-          errorMessage = "Formatos válidos: MP4, AVI, MOV, WebM, MKV";
-          break;
-        case "Tarea":
-          allowedTypes = [
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          ];
-          errorMessage = "Solo se permiten documentos PDF, Word y PPTX";
-          break;
-        default:
-          allowedTypes = [];
-          errorMessage = "Selecciona un tipo de actividad primero";
-      }
-
-      if (!allowedTypes.includes(file.type)) {
-        setError(errorMessage);
-        return;
-      }
-
-      if (file.size > 100 * 1024 * 1024) {
-        setError("El archivo es demasiado grande. El límite es 50 MB.");
-        return;
-      }
-
-      setError("");
-      setFormData({ ...formData, file });
-    }
+    setFiles((prev) => [...prev, ...Array.from(e.target.files)]);
+    setError("");
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    setFiles((prev) => [...prev, ...droppedFiles]);
+  };
+
+  // Reemplaza esto en CreateActivityModal.jsx
   const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
-      setError("El título y la descripción son obligatorios.");
-      return;
+      return setError("El título y la descripción son obligatorios.");
     }
-    if (!formData.type) {
-      setError("Debes seleccionar un tipo de actividad.");
-      return;
+    if (files.length === 0) {
+      return setError("Debes subir al menos un archivo.");
     }
-    if (!formData.file) {
-      setError("El archivo es obligatorio.");
-      return;
-    }
+    setLoading(true);
     setError("");
-  
     try {
-      setLoading(true); // 👉 Aquí empieza el loading
-  
-      const success = await onSave(formData); // Llama a la función de guardado
-  
-      if (success) {
-        onClose(); // Solo cerramos si fue exitoso
-      } else {
-        setError("Hubo un error al crear la actividad. Intenta nuevamente.");
-      }
-    } catch (error) {
-      console.error("Error creando actividad:", error);
+      const data = {
+        ...formData,
+        files,
+      };
+        console.log("📦 Datos a enviar desde modal:", data);
+      const success = await onSave(data);
+      if (success) onClose();
+      else setError("Ocurrió un error al guardar la actividad.");
+    } catch (err) {
+      console.error("❌ Error al crear actividad:", err);
       setError("Error inesperado al crear la actividad.");
     } finally {
-      setLoading(false); // 👉 Aquí termina el loading
-    }
-  };
-  
-
-  const getFileIcon = () => {
-    switch (formData.type) {
-      case "Documento":
-        return formData.file?.type === "application/pdf"
-          ? faFilePdf
-          : faFileWord;
-      case "Video":
-        return faVideo;
-      case "Tarea":
-        return faFile;
-      default:
-        return faFile;
-    }
-  };
-
-  const getUploadLabel = () => {
-    switch (formData.type) {
-      case "Documento":
-        return "Subir documento (PDF o Word)";
-      case "Video":
-        return "Subir video (MP4, AVI, MOV, WebM)";
-      case "Tarea":
-        return "Subir archivo de la tarea (PDF o TXT)";
-      default:
-        return "Selecciona un tipo de actividad primero";
+      setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 backdrop-blur-sm bg-black/40">
       <motion.div
-        className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-xl relative max-h-[90vh] overflow-y-auto"
+        className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg relative max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3, type: "spring" }}
       >
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
         >
-          <FontAwesomeIcon icon={faTimes} size="lg" />
+          <FontAwesomeIcon icon={faTimes} />
         </button>
 
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-8">
+        <h2 className="text-2xl font-bold text-center mb-6">
           Crear Nueva Actividad
         </h2>
 
         {error && (
-          <div className="bg-red-50 p-4 rounded-xl flex items-center gap-3 mb-6">
-            <FontAwesomeIcon
-              icon={faExclamationTriangle}
-              className="text-red-500"
-            />
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="bg-red-50 p-4 rounded-xl text-sm text-red-600 mb-4 flex gap-3">
+            <FontAwesomeIcon icon={faExclamationTriangle} />
+            <span>{error}</span>
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* Tipo de Actividad */}
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Tipo de Actividad
-            </label>
-            <div className="relative">
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-              >
-                <option value="">Seleccionar tipo...</option>
-                <option value="Tarea">Tarea</option>
-                <option value="Video">Video</option>
-                <option value="Documento">Documento</option>
-              </select>
-              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Título */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Título
-            </label>
+            <label className="block mb-1 font-semibold text-sm">Título</label>
             <input
               type="text"
               name="title"
               value={formData.title}
               onChange={handleChange}
-              placeholder="Ej: Introducción a React"
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-slate-300 rounded-xl"
+              placeholder="Ej: Introducción a Arduino"
             />
           </div>
 
-          {/* Descripción */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block mb-1 font-semibold text-sm">
               Descripción
             </label>
             <textarea
               name="content"
+              rows="3"
               value={formData.content}
               onChange={handleChange}
-              rows="3"
-              placeholder="Describe los objetivos y requisitos de la actividad..."
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full p-3 border border-slate-300 rounded-xl resize-none"
+              placeholder="Describe los objetivos y recursos..."
             />
           </div>
 
-          {/* Subir Archivo */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              {getUploadLabel()}
-            </label>
-            <label className="group relative cursor-pointer">
-              <input
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-                accept={
-                  formData.type === "Documento"
-                    ? ".pdf,.doc,.docx,.pptx"
-                    : formData.type === "Video"
-                    ? ".mp4,.avi,.mov,.webm,.mkv"
-                    : formData.type === "Tarea"
-                    ? ".pdf,.txt"
-                    : ""
-                }
-                disabled={!formData.type}
-              />
-              <div
-                className={`border-2 border-dashed border-gray-200 rounded-xl p-6 transition-all 
-                ${
-                  formData.file
-                    ? "border-blue-500 bg-blue-50"
-                    : "group-hover:border-blue-300"
-                }`}
-              >
-                <div className="flex flex-col items-center justify-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <FontAwesomeIcon
-                      icon={getFileIcon()}
-                      className={`text-xl ${
-                        formData.file ? "text-blue-600" : "text-gray-400"
-                      }`}
-                    />
-                  </div>
-                  <p className="text-center text-sm text-gray-500">
-                    {formData.file ? (
-                      <span className="text-blue-600 font-medium">
-                        {formData.file.name}
-                      </span>
-                    ) : (
-                      "Haz click o arrastra tu archivo"
-                    )}
-                  </p>
-                </div>
-              </div>
-            </label>
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            className="p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50 text-center cursor-pointer"
+          >
+            <p className="text-sm text-slate-500 mb-2">
+              Arrastra y suelta archivos aquí o usa el botón para seleccionar
+            </p>
+            <input
+              type="file"
+              multiple
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current.click()}
+              className="px-4 py-2 bg-slate-200 rounded-lg text-sm hover:bg-slate-300 transition"
+            >
+              <FontAwesomeIcon icon={faPlus} className="mr-2" /> Agregar
+              Archivos
+            </button>
+            {files.length > 0 && (
+              <ul className="mt-3 text-sm text-slate-600 list-disc text-left">
+                {files.map((file, i) => (
+                  <li key={i}>
+                    <FontAwesomeIcon icon={faFile} className="mr-2" />
+                    {file.name}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
+
           <div>
-  <label className="block text-sm font-semibold text-gray-700 mb-2">
-    Intentos máximos de entrega
-  </label>
-  <input
-    type="number"
-    name="maxAttempts"
-    min="1"
-    value={formData.maxAttempts}
-    onChange={handleChange}
-    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-  />
-</div>
-          {/* Fecha Límite */}
+            <label className="block mb-1 font-semibold text-sm">
+              Intentos máximos
+            </label>
+            <input
+              type="number"
+              name="maxSubmissions"
+              value={formData.maxSubmissions}
+              min={1}
+              onChange={handleChange}
+              className="w-full p-3 border border-slate-300 rounded-xl"
+            />
+          </div>
+
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Fecha Límite (Opcional)
+            <label className="block mb-1 font-semibold text-sm">
+              Fecha límite
             </label>
             <input
               type="date"
               name="deadline"
               value={formData.deadline}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-slate-300 rounded-xl"
             />
           </div>
         </div>
 
-        {/* Botones */}
-        <div className="mt-8 flex justify-end gap-3">
+        <div className="mt-6 flex justify-end gap-3">
           <motion.button
             onClick={onClose}
             whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+            className="px-5 py-2 bg-slate-200 text-slate-800 rounded-xl"
           >
             Cancelar
           </motion.button>
           <motion.button
             onClick={handleSubmit}
-            whileHover={{ scale: loading ? 1 : 1.05 }} // Desactivar hover si está cargando
-            whileTap={{ scale: loading ? 1 : 0.95 }}
             disabled={loading}
-            className={`px-6 py-3 rounded-xl flex items-center justify-center gap-2 font-semibold transition-colors w-full ${
+            whileHover={{ scale: loading ? 1 : 1.05 }}
+            className={`px-6 py-2 font-semibold text-white rounded-xl ${
               loading
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {loading ? (
               <>
-                <FontAwesomeIcon icon={faSpinner} spin />
-                Creando...
+                <FontAwesomeIcon icon={faSpinner} spin /> Creando...
               </>
             ) : (
               <>
-                <FontAwesomeIcon icon={faSave} />
-                Crear Actividad
+                <FontAwesomeIcon icon={faSave} /> Crear Actividad
               </>
             )}
           </motion.button>
