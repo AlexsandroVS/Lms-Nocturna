@@ -18,13 +18,13 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import AdminDashboard from "./admin/AdminDashboard";
 
 const DashboardLayout = ({ children }) => (
-  <div className="min-h-screen flex flex-col">
+  <div className="min-h-screen bg-white flex flex-col">
     <Navbar />
     <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex-1 p-6 mt-24 shadow-lg rounded-lg mx-4 my-6"
+      className="flex-1 p-0 mt-22 shadow-lg rounded-lg mx-0 my-0"
     >
       {children}
     </motion.main>
@@ -59,16 +59,17 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/search-results" element={<SearchResultsPage />} />
-               
+                  <Route path="/courses/:id" element={<CoursePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route
                   path="/courses/:courseId/modules/:moduleId/activities/:activityId/files"
                   element={<FilesPage />}
-                />
+                />  
+                
               </Route>
 
               {/* Ruta sin layout para ancho completo */}
-              <Route path="/courses/:id" element={<CoursePage />} />
+            
 
               {/* Rutas de administrador */}
               <Route

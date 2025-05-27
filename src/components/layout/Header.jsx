@@ -10,7 +10,7 @@ export default function Header() {
       className="mb-8 flex justify-between items-center"
     >
       <div className="relative w-3xl">
-        <h1 className="text-[#003049] font-bold text-4xl">Programa Nacional PAIS</h1>
+
       </div>
       <div className="flex items-center space-x-4">
         <button className="p-2 hover:bg-gray-100 rounded-full">

@@ -13,6 +13,7 @@ import {
   faArrowRight,
   faPlus,
   faChevronDown,
+  faCheckCircle,
   faChevronUp,
   faFileAlt,
 } from "@fortawesome/free-solid-svg-icons";
@@ -49,6 +50,7 @@ const ModuleList = ({
 
   // Menú hamburguesa por actividad
   const [openMenuActivityId, setOpenMenuActivityId] = useState(null);
+  const [submittedActivities, setSubmittedActivities] = useState([]);
 
   // Cargar actividades de cada módulo
   const fetchActivities = async (courseId, moduleId) => {
@@ -71,8 +73,40 @@ const ModuleList = ({
         fetchActivities(mod.CourseID, mod.ModuleID);
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modules, activitiesByModule, api]);
+  }, [modules, activitiesByModule]);
+
+  useEffect(() => {
+    const fetchUserSubmissions = async () => {
+      if (!currentUser?.id || !["student", "user"].includes(currentUser.role))
+        return;
+
+      try {
+        const allActivities = modules.flatMap(
+          (mod) => activitiesByModule[mod.ModuleID] || []
+        );
+
+        const submissionChecks = await Promise.all(
+          allActivities.map(async (activity) => {
+            try {
+              const res = await api.get(
+                `/activities/${activity.ActivityID}/users/${currentUser.id}/submissions`
+              );
+              return res.data.length > 0 ? activity.ActivityID : null;
+            } catch (err) {
+              return null;
+            }
+          })
+        );
+
+        const submitted = submissionChecks.filter(Boolean);
+        setSubmittedActivities(submitted);
+      } catch (err) {
+        console.error("Error al verificar entregas del usuario:", err);
+      }
+    };
+
+    fetchUserSubmissions();
+  }, [modules, activitiesByModule, currentUser?.id]);
 
   // Bloquear / Desbloquear
   const handleLockToggle = async (moduleId, currentLockStatus) => {
@@ -159,16 +193,10 @@ const ModuleList = ({
     }
   };
 
-  // Manejar clic en "Ver" o "Ver calificaciones"
+  // Manejar clic en "Ver actividad"
   const handleViewClick = (activity, mod, e) => {
     e.stopPropagation();
-    if (currentUser?.role === "admin" || currentUser?.role === "teacher") {
-      navigate(
-        `/courses/${modules[0].CourseID}/modules/${mod.ModuleID}/activities/${activity.ActivityID}/files`
-      );
-    } else {
-      onShowActivityDetail(activity);
-    }
+    onShowActivityDetail(activity);
   };
 
   // Menú por actividad
@@ -198,7 +226,8 @@ const ModuleList = ({
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-4 mb-3">
-                  {currentUser?.role === "admin" && (
+                  {(currentUser?.role === "admin" ||
+                    currentUser?.role === "teacher") && (
                     <motion.div
                       whileHover={{ scale: 1.1 }}
                       className={`p-2 rounded-lg ${
@@ -234,7 +263,8 @@ const ModuleList = ({
 
               {/* Controles del Módulo */}
               <div className="flex items-center gap-3">
-                {currentUser?.role === "admin" && (
+                {(currentUser?.role === "admin" ||
+                  currentUser?.role === "teacher") && (
                   <>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -275,7 +305,8 @@ const ModuleList = ({
 
             {/* Menú del Módulo */}
             {isModuleMenuOpen(mod.ModuleID) &&
-              currentUser?.role === "admin" && (
+              (currentUser?.role === "admin" ||
+                currentUser?.role === "teacher") && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{
@@ -363,15 +394,25 @@ const ModuleList = ({
                       whileHover={{ y: -2 }}
                       className="p-4 bg-gray-50 rounded-xl hover:bg-white transition-colors "
                     >
-                      {/* Primera fila: Título y botón de opciones (solo admin) */}
+                      {/* Primera fila: Título y botón de opciones  */}
                       <div className="flex items-center justify-between gap-4 mb-2">
                         <div className="flex-1 min-w-0">
-                          <h4 className="text-lg font-semibold text-gray-800 truncate">
+                          <h4 className="text-lg font-semibold text-gray-800 truncate flex items-center gap-2">
                             {activity.Title}
+                            {submittedActivities.includes(
+                              activity.ActivityID
+                            ) && (
+                              <FontAwesomeIcon
+                                icon={faCheckCircle}
+                                className="text-green-500 text-sm"
+                                title="Tarea enviada"
+                              />
+                            )}
                           </h4>
                         </div>
 
-                        {currentUser?.role === "admin" && (
+                        {(currentUser?.role === "admin" ||
+                          currentUser?.role === "teacher") && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -401,32 +442,23 @@ const ModuleList = ({
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                            currentUser?.role === "admin"
+                            currentUser?.role === "admin" ||
+                            currentUser?.role === "teacher"
                               ? "bg-blue-600 hover:bg-blue-700 text-white"
-                              : "bg-red-600 hover:bg-red-700 text-white"
+                              : "bg-purple-600 hover:bg-purple-700 text-white"
                           }`}
                           onClick={(e) => handleViewClick(activity, mod, e)}
                         >
-                          <FontAwesomeIcon
-                            icon={
-                              currentUser?.role === "admin"
-                                ? faFileAlt
-                                : faArrowRight
-                            }
-                          />
-                          <span>
-                            {currentUser?.role === "admin" ||
-                            currentUser?.role === "teacher"
-                              ? "Ver entregas"
-                              : "Ver"}
-                          </span>
+                          <FontAwesomeIcon icon={faArrowRight} />
+                          <span>Ver</span>
                         </motion.button>
                       </div>
 
                       {/* Menú Actividad (solo admin) */}
                       <AnimatePresence>
                         {isActivityMenuOpen(activity.ActivityID) &&
-                          currentUser?.role === "admin" && (
+                          (currentUser?.role === "admin" ||
+                            currentUser?.role === "teacher") && (
                             <motion.div
                               initial={{ opacity: 0, height: 0 }}
                               animate={{

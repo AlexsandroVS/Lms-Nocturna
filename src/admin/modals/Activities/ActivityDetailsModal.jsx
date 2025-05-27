@@ -2,11 +2,14 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect, useRef, useMemo } from "react";
+import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUpload,
   faFile,
-  faArrowRight,
+  faCommentSlash,
+  faRedo,
+  faExternalLinkAlt,
   faDownload,
   faSpinner,
   faClock,
@@ -18,14 +21,14 @@ import {
   faPaperPlane,
   faClipboardList,
   faFilePdf,
+  faFileAlt,
   faFileVideo,
-  faFileWord,
+  faFlagCheckered,
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../../context/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { Document, Page, pdfjs } from "react-pdf";
-import mammoth from "mammoth";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
@@ -37,7 +40,6 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
   const realModuleId = moduleId || activity?.ModuleID;
   const getFileIcon = (fileType) => {
     if (fileType === "application/pdf") return faFilePdf;
-    if (fileType.includes("word")) return faFileWord;
     if (fileType.startsWith("video/")) return faFileVideo;
     return faFile;
   };
@@ -48,7 +50,9 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
   const [adminFiles, setAdminFiles] = useState([]);
   const [studentFiles, setStudentFiles] = useState([]);
   const [submissions, setSubmissions] = useState([]);
-  const [showFiles, setShowFiles] = useState(true);
+  const hasSubmitted = submissions.some((s) => s.UserID === userId);
+
+  const [showFiles, setShowFiles] = useState(false);
 
   // Cargar archivos
   const fetchFiles = async () => {
@@ -59,7 +63,6 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
         api.get(`/activities/${activity.ActivityID}/submissions/all`),
       ]);
 
-      
       const adminUserIds = usersResp.data
         .filter((user) => user.Role === "admin")
         .map((user) => user.UserID);
@@ -75,20 +78,18 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
       setAdminFiles(adminFiles);
       setStudentFiles(studentFiles);
       setSubmissions(submissionsResp.data);
-
     } catch (error) {
       console.error("❌ Error al obtener archivos o entregas:", error);
     }
   };
   const hasDeadlinePassed = () => {
-  if (!activity?.Deadline) return false;
+    if (!activity?.Deadline) return false;
 
-  const deadline = new Date(activity.Deadline);
-  deadline.setHours(23, 59, 59, 999);
+    const deadline = new Date(activity.Deadline);
+    deadline.setHours(23, 59, 59, 999);
 
-  return new Date() > deadline;
-};
-
+    return new Date() > deadline;
+  };
 
   useEffect(() => {
     if (activity && userId) {
@@ -175,7 +176,6 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
 
     const isVideo = file.FileType.startsWith("video/");
     const isPDF = extension === "pdf";
-    const isWord = extension === "docx" || extension === "doc";
 
     useEffect(() => {
       if (containerRef.current) {
@@ -221,54 +221,24 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
 
     const getFileIcon = (fileType) => {
       if (fileType === "application/pdf") return faFilePdf;
-      if (fileType.includes("word")) return faFileWord;
       if (fileType.startsWith("video/")) return faFileVideo;
       return faFile;
     };
 
     const getFileColorClass = (fileType) => {
       if (fileType === "application/pdf") return "bg-red-500";
-      if (fileType.includes("word")) return "bg-blue-500";
       if (fileType.startsWith("video/")) return "bg-purple-500";
       return "bg-gray-500";
-    };
-
-    const WordViewer = ({ fileUrl }) => {
-      const [htmlContent, setHtmlContent] = useState("Cargando documento...");
-      const [error, setError] = useState(null);
-
-      useEffect(() => {
-        const loadWord = async () => {
-          try {
-            const response = await fetch(fileUrl);
-            const arrayBuffer = await response.arrayBuffer();
-            const { value } = await mammoth.convertToHtml({ arrayBuffer });
-            setHtmlContent(value);
-          } catch (err) {
-            console.error("Error al cargar Word:", err);
-            setError("No se pudo cargar el archivo Word.");
-          }
-        };
-
-        loadWord();
-      }, [fileUrl]);
-
-      if (error) {
-        return <p className="text-red-500">{error}</p>;
-      }
-
-      return (
-        <div
-          className="prose prose-sm max-w-none"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
-      );
     };
 
     return (
       <div
         ref={containerRef}
-        className="group relative flex flex-col gap-4 p-4 bg-white rounded-xl  transition-all w-full"
+        className="group relative flex flex-col gap-2 p-3 sm:p-4 bg-white rounded-xl transition-all w-full"
+        style={{
+          maxHeight: "70vh",
+          overflowY: "auto",
+        }}
       >
         {/* Header */}
         {(!isVideo || showDetails) && (
@@ -307,10 +277,11 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
 
         {/* Content */}
         {isVideo && (
-          <div className="w-full relative pt-[56.25%]">
+          <div className="w-full relative" style={{ paddingTop: "56.25%" }}>
             <video
               controls
               className="absolute top-0 left-0 w-full h-full rounded-lg bg-black"
+              playsInline
             >
               <source src={fileUrl} type={file.FileType} />
             </video>
@@ -318,7 +289,7 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
         )}
 
         {isPDF && (
-          <div className="w-full flex flex-col items-center">
+          <div className="w-full flex flex-col items-center overflow-auto">
             <Document
               file={fileUrl}
               onLoadError={(error) =>
@@ -328,25 +299,22 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
               loading="Cargando PDF..."
               noData="No se encontró PDF."
             >
-              {Array.from(new Array(numPages), (el, index) => (
-                <Page
-                  key={`page_${index + 1}`}
-                  pageNumber={index + 1}
-                  width={containerWidth * 0.95}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
-                  className="mb-4"
-                />
-              ))}
+              <div
+                className="flex flex-col items-center"
+                style={{ minWidth: `${containerWidth}px` }}
+              >
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page
+                    key={`page_${index + 1}`}
+                    pageNumber={index + 1}
+                    width={Math.min(containerWidth * 0.98, 1000)}
+                    renderAnnotationLayer={false}
+                    renderTextLayer={false}
+                    className="mb-4 shadow-md"
+                  />
+                ))}
+              </div>
             </Document>
-          </div>
-        )}
-
-        {isWord && (
-          <div className="w-full flex justify-center">
-            <div className="w-full bg-gray-100 p-6 rounded-lg overflow-auto max-h-[600px]">
-              <WordViewer fileUrl={fileUrl} />
-            </div>
           </div>
         )}
       </div>
@@ -392,34 +360,54 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
   const otherFiles = adminFiles.filter((f) => f !== mainVideo);
 
   return (
-    <div className="p-4 bg-white rounded-2xl w-full h-auto flex flex-col">
+    <div className="px-2 sm:px-4 py-4 bg-white rounded-2xl w-full h-auto flex flex-col overflow-x-hidden">
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        {/* Título a la izquierda */}
         <h2 className="text-2xl font-bold text-gray-900">{activity.Title}</h2>
-        {status && (
-          <div
-            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${
-              status === "Vencido"
-                ? "bg-red-100 text-red-800"
-                : "bg-green-100 text-green-800"
-            }`}
-          >
-            <FontAwesomeIcon
-              icon={status === "Vencido" ? faClock : faCheckCircle}
-              className="text-sm"
-            />
-            <span className="text-sm font-medium">{status}</span>
-          </div>
-        )}
-      </div>
 
-      {/* Video solo si existe */}
-      {mainVideo && (
-        <div className="mb-6">
-          <FileCard file={mainVideo} showDetails={false} />
+        {/* Badges y botón a la derecha */}
+        <div className="flex items-center flex-wrap gap-2 sm:justify-end">
+          {["student", "user"].includes(currentUser?.role) && hasSubmitted && (
+            <div className="px-3 py-1 text-sm rounded-full bg-green-100 text-green-700 font-medium inline-flex items-center gap-2">
+              <FontAwesomeIcon
+                icon={faCheckCircle}
+                className="text-green-500"
+              />
+              Entregado
+            </div>
+          )}
+
+          {status && (
+            <div
+              className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${
+                status === "Vencido"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-green-100 text-green-800"
+              }`}
+            >
+              <FontAwesomeIcon
+                icon={status === "Vencido" ? faClock : faCheckCircle}
+                className="text-sm"
+              />
+              <span className="text-sm font-medium">{status}</span>
+            </div>
+          )}
+
+          {["admin", "teacher"].includes(currentUser?.role) && (
+            <button
+              onClick={() =>
+                navigate(
+                  `/courses/${courseId}/modules/${moduleId}/activities/${activity.ActivityID}/files`
+                )
+              }
+              className="ml-2 px-4 py-2 text-purple-700 hover:text-purple-900 cursor-pointer rounded-lg text-sm font-medium transition"
+            >
+              Ver entregas
+            </button>
+          )}
         </div>
-      )}
-
+      </div>
       {/* Descripción */}
       <div className="mb-6 bg-gray-50 p-4 rounded-xl">
         <label className="block text-sm font-semibold text-gray-500 mb-2">
@@ -429,7 +417,6 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
           {activity.Content || "Esta actividad no tiene descripción."}
         </p>
       </div>
-
       {/* Material de apoyo */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -438,30 +425,37 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
           </h3>
           <button
             onClick={() => setShowFiles((prev) => !prev)}
-            className="text-sm text-blue-600 hover:underline"
+            className={`text-sm font-medium px-3 py-1 rounded-full transition-colors ${
+              showFiles
+                ? "bg-red-100 text-red-700 hover:bg-red-200"
+                : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+            }`}
           >
             {showFiles ? "Ocultar archivos" : "Mostrar archivos"}
           </button>
         </div>
-
         {showFiles && (
           <>
-            {otherFiles.length > 0 ? (
-              <div className="flex flex-col gap-6">
-                {otherFiles.map((file) => (
+            <div className="flex flex-col gap-6">
+              {/* Primero mostramos el video si existe */}
+              {mainVideo && <FileCard file={mainVideo} showDetails={false} />}
+
+              {/* Luego los otros archivos */}
+              {otherFiles.length > 0 ? (
+                otherFiles.map((file) => (
                   <FileCard key={file.FileID} file={file} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="text-gray-400 mb-4">
-                  <FontAwesomeIcon icon={faFile} size="2x" />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-4">
+                    <FontAwesomeIcon icon={faFile} size="2x" />
+                  </div>
+                  <p className="text-gray-500 text-sm">
+                    No hay material disponible para esta actividad
+                  </p>
                 </div>
-                <p className="text-gray-500 text-sm">
-                  No hay material disponible para esta actividad
-                </p>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
@@ -607,110 +601,188 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
             </div>
           )}
 
-          {submissions
-            .filter((s) => s.UserID === userId)
-            .sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt))
-            .length > 0 && (
-            <div className="mt-8 space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <FontAwesomeIcon
-                  icon={faClipboardList}
-                  className="text-gray-400"
-                />
-                Historial de entregas
-              </h4>
+          {["student", "user"].includes(currentUser?.role) &&
+            submissions
+              .filter((s) => s.UserID === userId)
+              .sort((a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt))
+              .length > 0 && (
+              <div className="mt-8 space-y-4">
+                <h4 className="text-lg md:text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  <FontAwesomeIcon
+                    icon={faClipboardList}
+                    className="text-gray-500"
+                  />
+                  <span>Historial de entregas</span>
+                </h4>
 
-              {submissions
-                .filter((s) => s.UserID === userId)
-                .sort(
-                  (a, b) => new Date(b.SubmittedAt) - new Date(a.SubmittedAt)
-                )
-                .map((submission) => (
-                  <div
-                    key={submission.SubmissionID}
-                    className="bg-white p-4 rounded-xl shadow-xs border-l-4 border-blue-200 hover:border-blue-300 transition-all"
-                  >
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="text-sm text-gray-600">
-                        Entrega N.º {submission.AttemptNumber} ·{" "}
-                        {new Date(submission.SubmittedAt).toLocaleString()}
-                      </div>
-                      <span className="text-xs px-2 py-1 rounded-full font-medium text-white bg-blue-400">
-                        {submission.IsFinal
-                          ? "Entrega final"
-                          : "Intento parcial"}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <label className="text-xs font-medium text-gray-400">
-                          Calificación
-                        </label>
-                        <div className="text-lg font-semibold text-blue-600">
-                          {submission.Score != null ? (
-                            <>
-                              {submission.Score}/20
-                              <span className="ml-2 text-sm text-green-500">
-                                ({((submission.Score / 20) * 100).toFixed(1)}%)
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-gray-400">Pendiente</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-medium text-gray-400">
-                          Retroalimentación
-                        </label>
-                        <div className="p-3 bg-gray-50 rounded-lg text-gray-700 text-sm whitespace-pre-line">
-                          {submission.Feedback?.trim() || (
-                            <span className="text-gray-400">
-                              Sin comentarios
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3">
-                      {submission.files && submission.files.length > 0 ? (
-                        submission.files.map((file) => (
-                          <div
-                            key={file.FileID}
-                            className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-lg"
-                          >
-                            <div className="flex items-center gap-2 text-gray-700">
+                <div className="space-y-4">
+                  {submissions
+                    .filter((s) => s.UserID === userId)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.SubmittedAt) - new Date(a.SubmittedAt)
+                    )
+                    .map((submission) => (
+                      <motion.div
+                        key={submission.SubmissionID}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-white p-4 rounded-xl shadow-sm border-gray-100 hover:shadow-md transition-all"
+                      >
+                        {/* Encabezado */}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-blue-100 p-2 rounded-lg">
                               <FontAwesomeIcon
-                                icon={getFileIcon(file.FileType)}
+                                icon={
+                                  submission.IsFinal ? faFlagCheckered : faRedo
+                                }
+                                className="text-blue-600"
                               />
-                              <span className="truncate max-w-[200px]">
-                                {file.FileName}
-                              </span>
                             </div>
-                            <button
-                              onClick={() => {
-                                const url = `http://localhost:5000/${file.Files}`;
-                                window.open(url, "_blank");
-                              }}
-                              className="text-blue-500 hover:text-blue-700 text-sm"
-                            >
-                              Ver archivo
-                            </button>
+                            <div>
+                              <div className="text-sm text-gray-600">
+                                Entrega #{submission.AttemptNumber}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {new Date(
+                                  submission.SubmittedAt
+                                ).toLocaleString()}
+                              </div>
+                            </div>
                           </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-400 italic">
-                          Sin archivos en esta entrega.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
+                          <span
+                            className={`text-xs px-3 py-1 rounded-full font-medium ${
+                              submission.IsFinal
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {submission.IsFinal
+                              ? "Entrega final"
+                              : "Intento parcial"}
+                          </span>
+                        </div>
+
+                        {/* Contenido principal */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                          {/* Calificación */}
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">
+                              Calificación
+                            </label>
+                            <div className="flex items-center gap-2">
+                              {submission.Score != null ? (
+                                <>
+                                  <div className="text-2xl font-bold text-blue-600">
+                                    {submission.Score}
+                                    <span className="text-lg text-gray-400">
+                                      /20
+                                    </span>
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                      
+                                    </div>
+                                  
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center gap-2 text-gray-400">
+                                  <FontAwesomeIcon icon={faClock} />
+                                  <span>Pendiente de calificación</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Retroalimentación */}
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <label className="text-xs font-medium text-gray-500 mb-1 block">
+                              Retroalimentación
+                            </label>
+                            <div className="text-sm text-gray-700 whitespace-pre-line">
+                              {submission.Feedback?.trim() ? (
+                                submission.Feedback
+                              ) : (
+                                <div className="flex items-center gap-2 text-gray-400">
+                                  <FontAwesomeIcon icon={faCommentSlash} />
+                                  <span>Sin comentarios</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Archivos adjuntos */}
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 mb-2 block">
+                            Archivos adjuntos
+                          </label>
+                          {submission.files && submission.files.length > 0 ? (
+                            <div className="grid gap-2">
+                              {submission.files.map((file) => (
+                                <motion.div
+                                  key={file.FileID}
+                                  whileHover={{ x: 2 }}
+                                  className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      className={`p-2 rounded-lg ${
+                                        file.FileType.includes("image")
+                                          ? "bg-blue-100 text-blue-600"
+                                          : file.FileType.includes("pdf")
+                                          ? "bg-red-100 text-red-600"
+                                          : file.FileType.includes("word")
+                                          ? "bg-blue-100 text-blue-600"
+                                          : file.FileType.includes("excel")
+                                          ? "bg-green-100 text-green-600"
+                                          : file.FileType.includes("zip")
+                                          ? "bg-yellow-100 text-yellow-600"
+                                          : "bg-gray-100 text-gray-600"
+                                      }`}
+                                    >
+                                      <FontAwesomeIcon
+                                        icon={getFileIcon(file.FileType)}
+                                        className="text-sm"
+                                      />
+                                    </div>
+                                    <div className="truncate max-w-[160px] sm:max-w-[200px] text-sm text-gray-700">
+                                      {file.FileName}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      const url = `http://localhost:5000/${file.Files}`;
+                                      window.open(url, "_blank");
+                                    }}
+                                    className="text-blue-500 hover:text-blue-700 text-sm flex items-center gap-1"
+                                  >
+                                    <span className="hidden sm:inline">
+                                      Ver
+                                    </span>
+                                    <FontAwesomeIcon
+                                      icon={faExternalLinkAlt}
+                                      className="text-xs"
+                                    />
+                                  </button>
+                                </motion.div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 p-3 rounded-lg">
+                              <FontAwesomeIcon icon={faFileAlt} />
+                              <span>No se adjuntaron archivos</span>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+            )}
         </div>
       )}
     </div>

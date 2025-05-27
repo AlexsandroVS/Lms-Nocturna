@@ -66,7 +66,7 @@ export default function Courses() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-5xl mx-auto text-center mb-10"
       >
-        <h1 className="text-4xl font-bold text-[#EC4899] mb-2">
+        <h1 className="text-4xl font-bold text-purple-700 mb-2">
           <FontAwesomeIcon icon={faGraduationCap} className="mr-2" />
           Mis Cursos
         </h1>

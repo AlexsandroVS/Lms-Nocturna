@@ -259,433 +259,464 @@ const FilesPage = () => {
     }
   };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="max-w-7xl mx-auto p-4 md:p-6 bg-white rounded-2xl shadow-sm"
-    >
-      {/* Header */}
-      <header className="mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <motion.h1
-              initial={{ y: -10 }}
-              animate={{ y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-2xl md:text-3xl font-bold text-slate-800 mb-2"
-            >
-              {activityDetails.name}
-            </motion.h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <motion.div
-                  animate={{ rotate: [0, 10, 0] }}
-                  transition={{ repeat: Infinity, duration: 3 }}
-                >
-                  <FontAwesomeIcon icon={faClock} className="text-indigo-500" />
-                </motion.div>
-                <span>
-                  {activityDetails.deadline
-                    ? new Date(activityDetails.deadline).toLocaleDateString()
-                    : "Sin fecha límite"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-slate-600">
-                <FontAwesomeIcon icon={faStar} className="text-indigo-500" />
-                <span>
-                  {activityDetails.maxSubmissions > 0
-                    ? `Máximo ${activityDetails.maxSubmissions} intentos`
-                    : "Intentos ilimitados"}
-                </span>
-              </div>
+ return (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3 }}
+    className="h-full flex-1 p-4 md:p-6 lg:p-8 bg-white"
+  >
+    {/* Header - Rediseñado para responsive */}
+    <header className="mb-6 md:mb-8">
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 w-full">
+        <div className="space-y-2">
+          <motion.h1
+            initial={{ y: -10 }}
+            animate={{ y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-2xl md:text-3xl font-bold text-slate-800"
+          >
+            {activityDetails.name}
+          </motion.h1>
+          
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <FontAwesomeIcon icon={faClock} className="text-purple-500" />
+              <span>
+                {activityDetails.deadline
+                  ? new Date(activityDetails.deadline).toLocaleDateString()
+                  : "Sin fecha límite"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <FontAwesomeIcon icon={faStar} className="text-purple-500" />
+              <span>
+                {activityDetails.maxSubmissions > 0
+                  ? `Máx. ${activityDetails.maxSubmissions} intentos`
+                  : "Intentos ilimitados"}
+              </span>
             </div>
           </div>
-
-          <motion.div
-            whileHover={{ y: -2 }}
-            className="relative w-full md:w-80"
-          >
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FontAwesomeIcon icon={faSearch} className="text-indigo-500" />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar estudiante..."
-              className="pl-10 pr-4 py-2.5 w-full rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-200 focus:outline-none transition-all duration-200 shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </motion.div>
         </div>
-      </header>
 
-      {loading ? (
         <motion.div
+          whileHover={{ y: -2 }}
+          className="relative w-full lg:w-80"
+        >
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FontAwesomeIcon icon={faSearch} className="text-purple-500" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar estudiante..."
+            className="pl-10 pr-4 py-2 w-full rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all duration-200 shadow-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </motion.div>
+      </div>
+    </header>
+
+    {loading ? (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center justify-center py-16"
+      >
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{
+            repeat: Infinity,
+            duration: 1.5,
+            ease: "linear",
+            damping: 10,
+          }}
+        >
+          <FontAwesomeIcon
+            icon={faSpinner}
+            className="text-3xl text-purple-500"
+          />
+        </motion.div>
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="flex flex-col items-center justify-center py-16"
+          transition={{ delay: 0.3 }}
+          className="mt-4 text-slate-500"
         >
+          Cargando entregas...
+        </motion.p>
+      </motion.div>
+    ) : (
+      <AnimatePresence>
+        {/* Main content - Mejorado para responsive */}
+        <div className="space-y-6 w-full">
+          {/* Users with submissions - Rediseñado */}
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{
-              repeat: Infinity,
-              duration: 1.5,
-              ease: "linear",
-              damping: 10,
-            }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="bg-white rounded-xl overflow-hidden shadow-sm w-full"
           >
-            <FontAwesomeIcon
-              icon={faSpinner}
-              className="text-3xl text-indigo-500"
-            />
-          </motion.div>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mt-4 text-slate-500"
-          >
-            Cargando entregas...
-          </motion.p>
-        </motion.div>
-      ) : (
-        <AnimatePresence>
-          {/* Main content */}
-          <div className="space-y-8">
-            {/* Users with submissions */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="bg-white rounded-xl overflow-hidden shadow-sm"
-            >
-              <div className="px-5 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-slate-200">
-                <h2 className="flex items-center gap-3 text-lg font-semibold text-slate-800">
-                  <FontAwesomeIcon
-                    icon={faUserCheck}
-                    className="text-indigo-600"
-                  />
-                  Entregas ({filteredWithSubmissions.length})
-                </h2>
-              </div>
+            <div className="px-4 py-3 md:px-5 md:py-4 bg-gradient-to-r from-purple-50 to-purple-50 border-b border-slate-200">
+              <h2 className="flex items-center gap-3 text-base md:text-lg font-semibold text-slate-800">
+                <FontAwesomeIcon
+                  icon={faUserCheck}
+                  className="text-purple-600"
+                />
+                Entregas ({filteredWithSubmissions.length})
+              </h2>
+            </div>
 
-              <div className="divide-y divide-slate-100">
-                {filteredWithSubmissions.map((userData) => (
-                  <motion.div
-             key={`user-container-${userData.user.UserID}`} 
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="p-5 hover:bg-slate-50/50 transition-colors duration-150"
-                  >
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center shadow-inner">
-                        <span className="text-indigo-700 font-medium text-lg">
+            <div className="divide-y divide-slate-100 w-full">
+              {filteredWithSubmissions.map((userData) => (
+                <motion.div
+                  key={`user-container-${userData.user.UserID}`}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-4 md:p-5 hover:bg-slate-50/50 transition-colors duration-150 w-full"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-4 mb-4">
+                    <div className="flex items-center gap-3 sm:flex-col sm:items-start">
+                      <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center shadow-inner">
+                        <span className="text-purple-700 font-medium text-base sm:text-lg">
                           {userData.user.Name.charAt(0)}
                         </span>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-slate-800">
-                          {userData.user.Name}
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          {userData.user.Email}
-                        </p>
-                      </div>
-                      <div className="text-right">
+                      <div className="sm:hidden">
                         {userData.finalSubmission ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
-                              Entregado
-                            </span>
-                          </div>
+                          <span className="text-xs font-medium bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                            Entregado
+                          </span>
                         ) : (
                           <span className="text-xs font-medium bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                            Pendiente de selección
+                            Pendiente
                           </span>
                         )}
                       </div>
                     </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-slate-800 truncate">
+                            {userData.user.Name}
+                          </h3>
+                          <p className="text-sm text-slate-500 truncate">
+                            {userData.user.Email}
+                          </p>
+                        </div>
+                        <div className="hidden sm:block">
+                          {userData.finalSubmission ? (
+                            <span className="text-xs font-medium bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                              Entregado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-medium bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                              Pendiente de selección
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                    {/* Submissions list */}
-                    <div className="ml-16 space-y-3">
-                      {userData.submissions.map((submission) => {
-                        const isOpen =
-                          openSubmissions[submission.SubmissionID] || false;
-                        return (
-                          <motion.div
-                               key={`submission-${submission.SubmissionID}`} 
-                            className={`p-4 rounded-lg border ${
-                              submission.isFinal
-                                ? "border-indigo-300 bg-indigo-50/50"
-                                : "border-slate-200"
-                            } shadow-xs`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-medium text-slate-800">
-                                  Entrega {submission.AttemptNumber} de{" "}
-                                  {userData.user.Name}
-                                </p>
-                                <p className="text-sm text-slate-500">
-                                  {new Date(
-                                    submission.SubmittedAt
-                                  ).toLocaleString()}
-                                  {isLate(
-                                    submission.SubmittedAt,
-                                    activityDetails.deadline
-                                  ) && (
-                                    <span className="ml-2 text-amber-600">
-                                      <FontAwesomeIcon
-                                        icon={faClock}
-                                        className="mr-1"
-                                      />
-                                      Tardío
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                {editingGrade === submission.SubmissionID ? (
-                                  <>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max="20"
-                                      step="0.1"
-                                      value={tempGrade}
-                                      onChange={(e) =>
-                                        setTempGrade(e.target.value)
-                                      }
-                                      className="w-20 p-1.5 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-200 focus:outline-none transition-all border border-slate-200"
-                                    />
-                                    <button
-                                      onClick={() =>
-                                        saveGrade(submission.SubmissionID)
-                                      }
-                                      className="text-green-600 hover:text-green-700 transition-colors"
-                                      title="Guardar"
-                                    >
-                                      <FontAwesomeIcon icon={faCheckCircle} />
-                                    </button>
-                                    <button
-                                      onClick={cancelEdit}
-                                      className="text-red-600 hover:text-red-700 transition-colors"
-                                      title="Cancelar"
-                                    >
-                                      <FontAwesomeIcon icon={faTimes} />
-                                    </button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span
-                                      className={`text-lg font-semibold ${
-                                        submission.Score >= 14
-                                          ? "text-green-600"
-                                          : submission.Score >= 10
-                                          ? "text-amber-500"
-                                          : "text-red-600"
-                                      }`}
-                                    >
-                                      {submission.Score !== null
-                                        ? submission.Score
-                                        : "Sin calificar"}
-                                    </span>
-                                    {(currentUser?.role === "teacher" ||
-                                      currentUser?.role === "admin") && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingGrade(
-                                            submission.SubmissionID
-                                          );
-                                          setTempGrade(submission.Score ?? "");
-                                        }}
-                                        className="text-indigo-600 text-xl hover:text-indigo-800 transition-colors"
-                                        title="Editar calificación"
-                                      >
-                                        <FontAwesomeIcon icon={faEdit} />
-                                      </button>
-                                    )}
-                                  </>
-                                )}
-
-                                {(currentUser?.role === "teacher" ||
-                                  currentUser?.role === "admin") && (
-                                  <button
-                                    onClick={() =>
-                                      openFeedbackModal(submission)
-                                    }
-                                    className="text-blue-600 text-xl hover:text-blue-800 transition-colors"
-                                    title="Agregar feedback"
-                                  >
-                                    <FontAwesomeIcon icon={faCommentDots} />
-                                  </button>
-                                )}
-
-                                {!submission.isFinal &&
-                                  (currentUser?.role === "teacher" ||
-                                    currentUser?.role === "admin") && (
-                                    <button
-                                      onClick={() =>
-                                        handleMarkAsFinal(
-                                          submission.SubmissionID,
-                                          userData.user.UserID
-                                        )
-                                      }
-                                      className="px-3 py-1 text-lg bg-indigo-600 text-white hover:bg-indigo-700 rounded-full transition-colors shadow-sm"
-                                      title="Marcar como entrega final"
-                                    >
-                                      Marcar como final
-                                    </button>
-                                  )}
-                                {submission.isFinal && (
-                                  <span className="px-3 py-1 text-xs bg-indigo-100 text-indigo-800 rounded-full">
-                                    Entrega final
-                                  </span>
-                                )}
-
-                                {/* Toggle colapsable */}
-                                <button
-                                  onClick={() =>
-                                    setOpenSubmissions((prev) => ({
-                                      ...prev,
-                                      [submission.SubmissionID]: !isOpen,
-                                    }))
-                                  }
-                                  className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                                  title="Mostrar archivos"
-                                >
-                                  <FontAwesomeIcon
-                                    icon={isOpen ? faChevronUp : faChevronDown}
-                                  />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Archivos colapsables */}
-                            {isOpen && (
-                              <div className="mt-4 ml-6 space-y-2">
-                                {submission.files.length > 0 ? (
-                                  submission.files.map((file) => (
-                                    <div
-                                    key={`file-${file.FileID}-${submission.SubmissionID}`}
-                                      className="flex items-center justify-between bg-slate-50 p-3 rounded-lg hover:bg-slate-100 transition-colors"
-                                    >
-                                      <div className="flex items-center gap-3 text-slate-700">
+                      {/* Submissions list - Mejorado para responsive */}
+                      <div className="mt-3 sm:ml-2 space-y-3">
+                        {userData.submissions.map((submission) => {
+                          const isOpen =
+                            openSubmissions[submission.SubmissionID] || false;
+                          return (
+                            <motion.div
+                              key={`submission-${submission.SubmissionID}`}
+                              className={`p-3 sm:p-4 rounded-lg border ${
+                                submission.isFinal
+                                  ? "border-purple-300 bg-purple-50/50"
+                                  : "border-slate-200"
+                              } shadow-xs`}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-800 truncate">
+                                    Entrega {submission.AttemptNumber}
+                                  </p>
+                                  <p className="text-xs sm:text-sm text-slate-500">
+                                    {new Date(
+                                      submission.SubmittedAt
+                                    ).toLocaleString()}
+                                    {isLate(
+                                      submission.SubmittedAt,
+                                      activityDetails.deadline
+                                    ) && (
+                                      <span className="ml-2 text-amber-600">
                                         <FontAwesomeIcon
-                                          icon={getFileIcon(file.FileName)}
-                                          className={`${
-                                            file.FileName?.endsWith(".pdf")
-                                              ? "text-red-500"
-                                              : file.FileName?.match(/\.docx?$/)
-                                              ? "text-blue-500"
-                                              : "text-slate-500"
-                                          }`}
+                                          icon={faClock}
+                                          className="mr-1"
                                         />
-                                        <span className="truncate max-w-[200px]">
-                                          {file.FileName}
-                                        </span>
-                                      </div>
-                                      <div className="flex gap-3">
-                                        {file.FileType ===
-                                          "application/pdf" && (
-                                          <button
-                                            onClick={() => {
-                                              setPreviewPdfUrl(
-                                                `http://localhost:5000/${file.Files}`
-                                              );
-                                              setShowPdfModal(true);
-                                            }}
-                                            title="Previsualizar PDF"
-                                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                                          >
-                                            <FontAwesomeIcon icon={faSearch} />
-                                          </button>
-                                        )}
+                                        Tardío
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                                  {/* Grade section */}
+                                  <div className="flex items-center gap-2">
+                                    {editingGrade === submission.SubmissionID ? (
+                                      <>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max="20"
+                                          step="0.1"
+                                          value={tempGrade}
+                                          onChange={(e) =>
+                                            setTempGrade(e.target.value)
+                                          }
+                                          className="w-16 sm:w-20 p-1 rounded-lg bg-slate-50 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all border border-slate-200"
+                                        />
                                         <button
                                           onClick={() =>
-                                            handleDownload(
-                                              `http://localhost:5000/${file.Files}`,
-                                              file.FileName
-                                            )
+                                            saveGrade(submission.SubmissionID)
                                           }
-                                          title="Descargar"
-                                          className="text-green-600 hover:text-green-800 transition-colors"
+                                          className="text-green-600 hover:text-green-700 transition-colors"
+                                          title="Guardar"
                                         >
-                                          <FontAwesomeIcon icon={faDownload} />
+                                          <FontAwesomeIcon icon={faCheckCircle} size="sm" />
                                         </button>
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <p className="text-sm text-slate-400 italic">
-                                    Sin archivos en esta entrega.
-                                  </p>
-                                )}
+                                        <button
+                                          onClick={cancelEdit}
+                                          className="text-red-600 hover:text-red-700 transition-colors"
+                                          title="Cancelar"
+                                        >
+                                          <FontAwesomeIcon icon={faTimes} size="sm" />
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span
+                                          className={`text-base sm:text-lg font-semibold ${
+                                            submission.Score >= 14
+                                              ? "text-green-600"
+                                              : submission.Score >= 10
+                                              ? "text-amber-500"
+                                              : "text-red-600"
+                                          }`}
+                                        >
+                                          {submission.Score !== null
+                                            ? submission.Score
+                                            : "-"}
+                                        </span>
+                                        {(currentUser?.role === "teacher" ||
+                                          currentUser?.role === "admin") && (
+                                          <button
+                                            onClick={() => {
+                                              setEditingGrade(
+                                                submission.SubmissionID
+                                              );
+                                              setTempGrade(submission.Score ?? "");
+                                            }}
+                                            className="text-purple-600 hover:text-purple-800 transition-colors"
+                                            title="Editar calificación"
+                                          >
+                                            <FontAwesomeIcon icon={faEdit} size="sm" />
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Action buttons - Reorganizado para responsive */}
+                                  <div className="flex items-center gap-1 sm:gap-2">
+                                    {(currentUser?.role === "teacher" ||
+                                      currentUser?.role === "admin") && (
+                                      <>
+                                        <button
+                                          onClick={() =>
+                                            openFeedbackModal(submission)
+                                          }
+                                          className="text-blue-600 hover:text-blue-800 transition-colors"
+                                          title="Agregar feedback"
+                                        >
+                                          <FontAwesomeIcon icon={faCommentDots} size="sm" />
+                                        </button>
+
+                                        {!submission.isFinal && (
+                                          <button
+                                            onClick={() =>
+                                              handleMarkAsFinal(
+                                                submission.SubmissionID,
+                                                userData.user.UserID
+                                              )
+                                            }
+                                            className="hidden sm:inline-block px-2 py-1 text-sm bg-purple-600 text-white hover:bg-purple-700 rounded-full transition-colors shadow-sm"
+                                            title="Marcar como final"
+                                          >
+                                            Final
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
+
+                                    {submission.isFinal ? (
+                                      <span className="hidden sm:inline-block px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                                        Final
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          handleMarkAsFinal(
+                                            submission.SubmissionID,
+                                            userData.user.UserID
+                                          )
+                                        }
+                                        className="sm:hidden px-2 py-1 text-xs bg-purple-600 text-white hover:bg-purple-700 rounded-full transition-colors shadow-sm"
+                                        title="Marcar como final"
+                                      >
+                                        Final
+                                      </button>
+                                    )}
+
+                                    <button
+                                      onClick={() =>
+                                        setOpenSubmissions((prev) => ({
+                                          ...prev,
+                                          [submission.SubmissionID]: !isOpen,
+                                        }))
+                                      }
+                                      className="text-purple-600 hover:text-purple-800 transition-colors"
+                                      title={isOpen ? "Ocultar archivos" : "Mostrar archivos"}
+                                    >
+                                      <FontAwesomeIcon
+                                        icon={isOpen ? faChevronUp : faChevronDown}
+                                        size="sm"
+                                      />
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
+
+                              {/* Archivos colapsables - Mejorado para responsive */}
+                              {isOpen && (
+                                <div className="mt-3 sm:ml-4 space-y-2">
+                                  {submission.files.length > 0 ? (
+                                    submission.files.map((file) => (
+                                      <div
+                                        key={`file-${file.FileID}-${submission.SubmissionID}`}
+                                        className="flex items-center justify-between bg-slate-50 p-2 sm:p-3 rounded-lg hover:bg-slate-100 transition-colors"
+                                      >
+                                        <div className="flex items-center gap-2 sm:gap-3 text-slate-700 min-w-0">
+                                          <FontAwesomeIcon
+                                            icon={getFileIcon(file.FileName)}
+                                            className={`text-lg ${
+                                              file.FileName?.endsWith(".pdf")
+                                                ? "text-red-500"
+                                                : file.FileName?.match(/\.docx?$/)
+                                                ? "text-blue-500"
+                                                : "text-slate-500"
+                                            }`}
+                                          />
+                                          <span className="truncate flex-1">
+                                            {file.FileName}
+                                          </span>
+                                        </div>
+                                        <div className="flex gap-2 sm:gap-3">
+                                          {file.FileType ===
+                                            "application/pdf" && (
+                                            <button
+                                              onClick={() => {
+                                                setPreviewPdfUrl(
+                                                  `http://localhost:5000/${file.Files}`
+                                                );
+                                                setShowPdfModal(true);
+                                              }}
+                                              title="Previsualizar PDF"
+                                              className="text-blue-600 hover:text-blue-800 transition-colors"
+                                            >
+                                              <FontAwesomeIcon icon={faSearch} size="sm" />
+                                            </button>
+                                          )}
+                                          <button
+                                            onClick={() =>
+                                              handleDownload(
+                                                `http://localhost:5000/${file.Files}`,
+                                                file.FileName
+                                              )
+                                            }
+                                            title="Descargar"
+                                            className="text-green-600 hover:text-green-800 transition-colors"
+                                          >
+                                            <FontAwesomeIcon icon={faDownload} size="sm" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-xs sm:text-sm text-slate-400 italic">
+                                      Sin archivos en esta entrega.
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Users without submissions */}
-            {(currentUser?.role === "teacher" ||
-              currentUser?.role === "admin") && (
-              <StudentsWithoutSubmissions
-                students={filteredWithoutSubmissions}
-              />
-            )}
-
-            {/* Empty states */}
-            {filteredWithSubmissions.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-                className="text-center py-16"
-              >
-                <motion.div
-                  animate={{
-                    scale: [1, 1.05, 1],
-                    rotate: [0, 5, 0],
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 4,
-                    ease: "easeInOut",
-                  }}
-                >
-                  <FontAwesomeIcon
-                    icon={searchTerm ? faSearch : faFile}
-                    className="text-5xl text-indigo-200 mb-4"
-                  />
+                  </div>
                 </motion.div>
-                <h3 className="text-lg font-semibold text-slate-700">
-                  {searchTerm
-                    ? "No se encontraron resultados"
-                    : "No hay entregas aún"}
-                </h3>
-                <p className="text-slate-500 mt-2">
-                  {searchTerm
-                    ? `No hay coincidencias para "${searchTerm}"`
-                    : "Los estudiantes podrán subir sus archivos aquí"}
-                </p>
-              </motion.div>
-            )}
-          </div>
-        </AnimatePresence>
-      )}
+              ))}
+            </div>
+          </motion.div>
 
-      {/* Feedback modal */}
+          {/* Users without submissions */}
+          {(currentUser?.role === "teacher" ||
+            currentUser?.role === "admin") && (
+            <StudentsWithoutSubmissions
+              students={filteredWithoutSubmissions}
+            />
+          )}
+
+          {/* Empty states */}
+          {filteredWithSubmissions.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-center py-12 sm:py-16"
+            >
+              <motion.div
+                animate={{
+                  scale: [1, 1.05, 1],
+                  rotate: [0, 5, 0],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 4,
+                  ease: "easeInOut",
+                }}
+              >
+                <FontAwesomeIcon
+                  icon={searchTerm ? faSearch : faFile}
+                  className="text-4xl sm:text-5xl text-purple-200 mb-4"
+                />
+              </motion.div>
+              <h3 className="text-lg font-semibold text-slate-700">
+                {searchTerm
+                  ? "No se encontraron resultados"
+                  : "No hay entregas aún"}
+              </h3>
+              <p className="text-sm sm:text-base text-slate-500 mt-2 max-w-md mx-auto">
+                {searchTerm
+                  ? `No hay coincidencias para "${searchTerm}"`
+                  : "Los estudiantes podrán subir sus archivos aquí"}
+              </p>
+            </motion.div>
+          )}
+        </div>
+      </AnimatePresence>
+    )}
+
+    {/* Modals (sin cambios) */}
       {editingFeedback && (
         <div className="fixed inset-0 z-50 backdrop-blur-sm bg-white/70 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-lg w-full max-w-md transform transition-all border border-slate-200">
@@ -710,7 +741,7 @@ const FilesPage = () => {
                 rows={5}
                 value={feedbackText}
                 onChange={(e) => setFeedbackText(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder-slate-400 resize-none outline-none"
+                className="w-full px-4 py-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all placeholder-slate-400 resize-none outline-none"
                 placeholder="Escribe tu feedback aquí..."
               />
 
@@ -723,7 +754,7 @@ const FilesPage = () => {
                 </button>
                 <button
                   onClick={handleSaveFeedback}
-                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-full transition-colors duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-sm"
+                  className="px-6 py-2.5 bg-purple-600 text-white hover:bg-purple-700 rounded-full transition-colors duration-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 shadow-sm"
                 >
                   Guardar
                 </button>
@@ -733,14 +764,13 @@ const FilesPage = () => {
         </div>
       )}
 
-      {/* PDF preview modal */}
-      <PDFPreviewModal
-        isOpen={showPdfModal}
-        onClose={() => setShowPdfModal(false)}
-        fileUrl={previewPdfUrl}
-      />
-    </motion.div>
-  );
+    <PDFPreviewModal
+      isOpen={showPdfModal}
+      onClose={() => setShowPdfModal(false)}
+      fileUrl={previewPdfUrl}
+    />
+  </motion.div>
+);
 };
 
 export default FilesPage;

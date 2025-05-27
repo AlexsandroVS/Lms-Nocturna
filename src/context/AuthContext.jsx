@@ -2,58 +2,46 @@
 /* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const AuthContext = createContext();
 
 // Configurar axios con la URL base
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  withCredentials: true,
 });
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true); // Estado de carga
-  const navigate = useNavigate();
+
+
+  const location = useLocation();
 
   useEffect(() => {
-    initializeAuth(); // Llamar a initializeAuth en un solo efecto
-  }, []); // Solo se ejecuta una vez cuando el componente se monta
+    const publicRoutes = ["/login", "/register", "/"]; 
+    if (!publicRoutes.includes(location.pathname)) {
+      initializeAuth();
+    } else {
+      setLoading(false); // Evitar pantalla de carga infinita
+    }
+  }, [location.pathname]);
 
   const initializeAuth = async () => {
-    const userData = localStorage.getItem("userData");
-    const token = localStorage.getItem("jwtToken");
-
-    if (userData && token) {
-      setCurrentUser(JSON.parse(userData)); // Establecer el usuario desde localStorage
-
-      try {
-        const response = await api.get("/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        // Si la respuesta es exitosa, actualizar el estado `currentUser` y `localStorage`
-        if (response.data.user) {
-          const user = response.data.user;
-          setCurrentUser(user);
-          localStorage.setItem("userData", JSON.stringify(user));
-        }
-      } catch (error) {
-        console.error("Error verificando autenticación:", error.response?.data);
-        if (error.response?.status === 401) {
-          // El token ya no es válido, limpiamos sin llamar al backend
-          localStorage.removeItem("jwtToken");
-          localStorage.removeItem("userData");
-          setCurrentUser(null);
-        }
+    try {
+      const response = await api.get("/auth/me"); // Se basa en la cookie HTTP Only
+      if (response.data.user) {
+        setCurrentUser(response.data.user);
       }
-    } else {
-      localStorage.removeItem("jwtToken");
-      localStorage.removeItem("userData");
-      setCurrentUser(null);
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        console.error("Error autenticando:", error.response?.data);
+      }
+      setCurrentUser(null); // Usuario no autenticado
+    } finally {
+      setLoading(false); // Finaliza la carga
     }
-
-    setLoading(false); // Cambiar el estado de carga
   };
 
   const updateUserAvatar = (newAvatar) => {
@@ -73,14 +61,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const response = await api.post("/auth/login", { email, password });
-      const { token, user } = response.data;
+      const response = await api.post("/auth/login", { email, password }); // withCredentials ya configurado
+      const { user } = response.data;
 
-      // Almacenar el token y los datos del usuario
-      localStorage.setItem("jwtToken", token);
-      localStorage.setItem("userData", JSON.stringify(user));
-
-      setCurrentUser(user); // Establecer el usuario en el estado
+      setCurrentUser(user);
 
       return { success: true, user };
     } catch (error) {
@@ -102,21 +86,12 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error("Error en logout backend:", error);
     } finally {
-      localStorage.removeItem("jwtToken");
       localStorage.removeItem("userData");
       setCurrentUser(null);
-      navigate("/", { replace: true });
+      // ⚠️ Usa recarga total para evitar estados en blanco
+      window.location.href = "/login";
     }
   };
-
-  // Interceptor para incluir el token en todas las peticiones
-  api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("jwtToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
 
   const value = {
     currentUser,
