@@ -1,0 +1,88 @@
+.chart-container {
+  background-color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9e9f0;
+  /* Quitar overflow hidden para que no corte el scroll */
+  /* overflow: hidden; */
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4a3aff;
+  margin-bottom: 0.5rem;
+}
+
+.chart-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.chart-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  /* Añadido para que el scroll tenga un poco de espacio */
+  padding-bottom: 0.5rem;
+}
+
+/* Contenedor que envuelve al ResponsiveContainer para scroll horizontal */
+.chart-scroll-wrapper {
+  overflow-x: auto;
+  min-width: 600px; /* Ajusta según tu número de módulos */
+}
+
+/* Aseguramos que recharts ocupe mínimo el ancho del contenedor scroll */
+.recharts-wrapper {
+  font-family: inherit;
+  min-width: 100% !important;
+}
+
+.recharts-cartesian-grid line {
+  stroke: #f0f0f0;
+}
+
+.recharts-tooltip-wrapper {
+  z-index: 10;
+}
+
+/* Responsividad para móviles */
+@media (max-width: 767px) {
+  .chart-container {
+    padding: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .recharts-wrapper {
+    min-width: 100% !important;
+  }
+
+  .chart-scroll-wrapper {
+    min-width: 500px; /* Para que siga habiendo scroll en móviles */
+  }
+
+  .recharts-legend-wrapper {
+    position: relative !important;
+    width: 100% !important;
+    left: 0 !important;
+    bottom: 0 !important;
+  }
+
+  .recharts-default-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-top: 10px !important;
+  }
+
+  .recharts-legend-item {
+    margin: 0 8px !important;
+  }
+}

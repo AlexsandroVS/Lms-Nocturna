@@ -1,70 +1,100 @@
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 import { useAuth } from "../../context/AuthContext";
+import { testData } from "../../data/testData";
+import { chartColors } from "../../utils/chartColors";
 
-const TopPendingActivitiesChart = () => {
+const TopPendingActivitiesChart = ({ isMobile }) => {
   const [data, setData] = useState([]);
   const { api } = useAuth();
 
   useEffect(() => {
-    api.get("/stats/top-pending-activities")
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Error al cargar top pendientes:", err));
+    setData(testData.topPendingActivities);
   }, []);
 
+  const margin = {
+    top: 20,
+    right: isMobile ? 10 : 20,
+    left: isMobile ? 100 : 150,
+    bottom: 30
+  };
+
   return (
-    <div className="p-6 bg-white rounded-lg shadow-sm  border-gray-100">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Actividades con Más Pendientes</h3>
-      <p className="text-sm text-gray-500 mb-6">Top 5 actividades con mayor cantidad de entregas pendientes</p>
-      
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart 
-          data={data} 
+    <div className="chart-container">
+      <h3 className="chart-title">Actividades con Más Pendientes</h3>
+      <p className="chart-subtitle">Top 5 actividades con mayor cantidad de entregas pendientes</p>
+
+      <ResponsiveContainer width="100%" height={isMobile ? 500 : 450}>
+        <BarChart
+          data={data}
           layout="vertical"
-          margin={{ top: 20, right: 30, left: 150, bottom: 20 }}
-          stackOffset="expand"
-          barSize={24}
+          margin={margin}
+          barSize={isMobile ? 20 : 28}
         >
-          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
-          <XAxis 
-            type="number" 
-            allowDecimals={false}
-            tick={{ fill: '#6B7280' }}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            horizontal={true}
+            vertical={false}
+            stroke={chartColors.gray.medium}
+          />
+          <XAxis
+            type="number"
+            tick={{ fill: chartColors.gray.dark, fontSize: 12 }}
+            axisLine={{ stroke: chartColors.gray.medium }}
+            tickLine={{ stroke: chartColors.gray.medium }}
+          />
+          <YAxis
+            type="category"
+            dataKey="Title"
             axisLine={false}
             tickLine={false}
+            tick={{
+              fill: chartColors.gray.dark,
+              fontSize: isMobile ? 10 : 12,
+            }}
+            width={isMobile ? 100 : 140}
           />
-          <YAxis 
-            type="category" 
-            dataKey="Title" 
-            tick={{ fill: '#6B7280' }}
-            axisLine={false}
-            tickLine={false}
-            width={140}
-          />
-          <Tooltip 
+          <Tooltip
             contentStyle={{
-              borderRadius: '8px',
-              border: '1px solid #eee',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              backgroundColor: 'rgba(255,255,255,0.95)'
+              background: "white",
+              borderRadius: "8px",
+              border: `1px solid ${chartColors.gray.medium}`,
+              boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+            }}
+            labelStyle={{
+              fontWeight: 600,
+              color: chartColors.teal.dark,
+              marginBottom: "5px",
             }}
           />
-          <Legend 
+          <Legend
             wrapperStyle={{
-              paddingTop: '20px'
+              paddingTop: "20px",
+              fontSize: "13px",
             }}
+            iconType="circle"
+            iconSize={10}
           />
-          <Bar 
-            dataKey="Entregas" 
-            stackId="a" 
-            fill="#81B29A" 
+          <Bar
+            dataKey="Entregas"
+            stackId="a"
+            fill={chartColors.teal.primary}
             name="Entregas"
             radius={[0, 0, 0, 0]}
           />
-          <Bar 
-            dataKey="Pendientes" 
-            stackId="a" 
-            fill="#D33F49" 
+          <Bar
+            dataKey="Pendientes"
+            stackId="a"
+            fill={chartColors.pink.primary}
             name="Pendientes"
             radius={[0, 4, 4, 0]}
           />

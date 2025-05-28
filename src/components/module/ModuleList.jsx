@@ -526,6 +526,8 @@ const ModuleList = ({
       {showEditModal && selectedActivity && (
         <EditActivityModal
           activity={selectedActivity}
+          moduleId={selectedModuleId}
+          courseId={modules[0]?.CourseID} // o mod.CourseID si estás dentro de un map
           onClose={() => setShowEditModal(false)}
           onUpdate={handleEditActivity}
         />

@@ -118,19 +118,22 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 pb-20"> {/* padding bottom para navbar móvil */}
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 pb-20">
+      {" "}
+      {/* padding bottom para navbar móvil */}
       {/* Header */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-xl shadow-lg p-4 sm:p-6 mb-6 text-white"
       >
-        <h1 className="text-2xl sm:text-3xl font-bold">Panel de Administración</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">
+          Panel de Administración
+        </h1>
         <p className="mt-1 sm:mt-2 opacity-90 text-sm sm:text-base">
           Gestión de usuarios, cursos y estadísticas
         </p>
       </motion.div>
-
       {/* Tabs Desktop */}
       {!isMobile && (
         <div className="flex flex-wrap gap-2 mb-6">
@@ -152,7 +155,6 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
-
       {/* Tabs Mobile fixed bottom */}
       {isMobile && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 z-50 shadow-md">
@@ -170,7 +172,6 @@ export default function AdminDashboard() {
           ))}
         </nav>
       )}
-
       {/* Content */}
       <AnimatePresence mode="wait">
         {activeTab === "users" && (
@@ -198,7 +199,9 @@ export default function AdminDashboard() {
             </div>
 
             {loading ? (
-              <div className="text-center py-10 sm:py-20">Cargando usuarios...</div>
+              <div className="text-center py-10 sm:py-20">
+                Cargando usuarios...
+              </div>
             ) : error ? (
               <div className="text-red-600">{error}</div>
             ) : (
@@ -231,13 +234,12 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-xl shadow-md p-4 sm:p-6"
+            className="bg-white rounded-xl shadow-md p-0 overflow-hidden" // Eliminamos padding interno
           >
             <StatsOverview isMobile={isMobile} />
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Modals */}
       <AnimatePresence>
         {isAdmin && editingUser && (

@@ -61,7 +61,7 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                 Usuarios
               </span>
             </h2>
-            <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-red-100 text-red-700 rounded-full text-xs sm:text-sm font-medium">
+            <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
               {users.length} {users.length === 1 ? 'usuario' : 'usuarios'}
             </span>
           </div>

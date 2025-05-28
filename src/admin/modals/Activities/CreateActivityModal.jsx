@@ -58,7 +58,6 @@ const CreateActivityModal = ({ onClose, onSave }) => {
         ...formData,
         files,
       };
-        console.log("📦 Datos a enviar desde modal:", data);
       const success = await onSave(data);
       if (success) onClose();
       else setError("Ocurrió un error al guardar la actividad.");
@@ -176,7 +175,7 @@ const CreateActivityModal = ({ onClose, onSave }) => {
               Fecha límite
             </label>
             <input
-              type="date"
+              type="datetime-local"
               name="deadline"
               value={formData.deadline}
               onChange={handleChange}

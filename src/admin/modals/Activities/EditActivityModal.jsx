@@ -15,9 +15,14 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { useParams } from "react-router-dom";
 
-const EditActivityModal = ({ activity, onClose, onUpdate }) => {
+const EditActivityModal = ({
+  activity,
+  moduleId,
+  courseId,
+  onClose,
+  onUpdate,
+}) => {
   const { api } = useAuth();
-  const { courseId } = useParams();
 
   const [error, setError] = useState("");
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -33,6 +38,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
 
   const [files, setFiles] = useState([]);
   const [newFile, setNewFile] = useState(null);
+  const [newFiles, setNewFiles] = useState([]);
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -74,7 +80,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
         maxSubmissions: formData.MaxSubmissions || 1,
       });
 
-      onUpdate(); 
+      onUpdate();
       onClose();
     } catch (error) {
       console.error("Error actualizando actividad:", error);
@@ -95,38 +101,59 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
   };
 
   const handleFileChange = (e) => {
-    setNewFile(e.target.files[0]);
+    setNewFiles(Array.from(e.target.files)); // todos los archivos seleccionados
   };
 
   const handleAddFile = async () => {
-    if (!newFile) {
-      setError("Selecciona un archivo válido.");
+    if (!newFiles.length) {
+      setError("Selecciona al menos un archivo válido.");
+      return;
+    }
+
+    if (!courseId || !moduleId || !activity?.ActivityID) {
+      console.error("❌ IDs faltantes:", { courseId, moduleId, activity });
+      setError("Error interno: IDs faltantes para la carga.");
       return;
     }
 
     const formDataUpload = new FormData();
-    formDataUpload.append("file", newFile);
-    formDataUpload.append("courseId", courseId);
+
+    newFiles.forEach((file) => {
+      if (file instanceof File) {
+        formDataUpload.append("file", file); // 👈 repetir 'file' varias veces
+      } else {
+        console.warn("⚠️ Objeto no válido en archivos:", file);
+      }
+    });
 
     setLoadingFile(true);
+    for (let [key, value] of formDataUpload.entries()) {
+      console.log("📦 FormData entry:", key, value);
+    }
     try {
-      await api.post(
-        `/activities/${activity.ActivityID}/files`,
+      const response = await api.post(
+        `/courses/${courseId}/modules/${moduleId}/activities/${activity.ActivityID}/files`,
         formDataUpload,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
+      // Refrescar archivos subidos
       const updatedFiles = await api.get(
         `/activities/${activity.ActivityID}/files`
       );
       setFiles(updatedFiles.data);
-      setNewFile(null);
+      setNewFiles([]);
       setError("");
     } catch (error) {
-      console.error("Error subiendo archivo:", error);
-      setError("Error al subir archivo.");
+      console.error(
+        "❌ Error subiendo archivo:",
+        error.response?.data || error
+      );
+      setError("Error al subir archivo. Revisa el formato o tamaño.");
     } finally {
       setLoadingFile(false);
     }
@@ -207,7 +234,7 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
             name="deadline"
             value={formData.deadline}
             onChange={handleChange}
-            type="date"
+            type="datetime-local"
           />
 
           {/* Archivos actuales */}
@@ -269,9 +296,11 @@ const EditActivityModal = ({ activity, onClose, onUpdate }) => {
               <input
                 type="file"
                 accept={getAcceptByType(formData.type)}
+                multiple // aquí permitimos varios archivos
                 onChange={handleFileChange}
                 className="border border-gray-300 rounded-xl p-2 w-full"
               />
+
               <button
                 onClick={handleAddFile}
                 disabled={loadingFile}
