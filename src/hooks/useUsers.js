@@ -3,12 +3,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import defaultAvatar from '../assets/admin-avatar.jpg';
 
-const SERVER_URL = "http://localhost:5000";
-
 // Función para construir la URL completa del avatar
 const getAvatarUrl = (avatar) => {
   if (!avatar) return defaultAvatar;
-  return avatar.startsWith("http") ? avatar : `${SERVER_URL}${avatar}`;
+  
+  const baseUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : "http://localhost:5000";
+  
+  return avatar.startsWith("http") ? avatar : `${baseUrl}${avatar}`;
 };
 
 const useUsers = () => {

@@ -10,34 +10,54 @@ import {
   faUserGraduate,
   faUser,
   faCircleCheck,
-  faEllipsisVertical
+  faEllipsisVertical,
 } from "@fortawesome/free-solid-svg-icons";
 
-const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) => {
+const UserManagementTable = ({
+  users,
+  onEdit,
+  onDelete,
+  currentUser,
+  onCreate,
+  isMobile,
+}) => {
   const [expandedUser, setExpandedUser] = useState(null);
 
   const getRoleIcon = (role) => {
-    switch(role.toLowerCase()) {
-      case 'admin': return faUserShield;
-      case 'teacher': return faUserGraduate;
-      default: return faUser;
-    }
-  };
-
-  const getRoleLabel = (role) => {
-    switch (role) {
-      case "admin": return "Admin";
-      case "teacher": return "Docente";
-      case "student": return "Estudiante";
-      default: return "Desconocido";
+    if (!role) return faUser;
+    switch (role.toLowerCase()) {
+      case "admin":
+        return faUserShield;
+      case "teacher":
+        return faUserGraduate;
+      default:
+        return faUser;
     }
   };
 
   const getRoleColor = (role) => {
-    switch(role.toLowerCase()) {
-      case 'admin': return 'bg-red-100 text-red-800';
-      case 'teacher': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+    if (!role) return "bg-gray-100 text-gray-800";
+    switch (role.toLowerCase()) {
+      case "admin":
+        return "bg-red-100 text-red-800";
+      case "teacher":
+        return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getRoleLabel = (role) => {
+    if (!role) return "Desconocido";
+    switch (role.toLowerCase()) {
+      case "admin":
+        return "Admin";
+      case "teacher":
+        return "Docente";
+      case "student":
+        return "Estudiante";
+      default:
+        return "Desconocido";
     }
   };
 
@@ -62,11 +82,10 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
               </span>
             </h2>
             <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
-              {users.length} {users.length === 1 ? 'usuario' : 'usuarios'}
+              {users.length} {users.length === 1 ? "usuario" : "usuarios"}
             </span>
           </div>
-
-          {!isMobile && (
+          {!isMobile && currentUser?.role !== "teacher" && (
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
@@ -101,7 +120,7 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                         className="w-10 h-10 rounded-full object-cover border-2 border-white shadow"
                         onError={(e) => {
                           if (!e.target.dataset.fallback) {
-                            e.target.src = '/img/default-avatar.png';
+                            e.target.src = "/img/default-avatar.png";
                             e.target.dataset.fallback = "true";
                           }
                         }}
@@ -114,16 +133,16 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                       <div className="font-medium text-gray-800 flex items-center gap-1">
                         {user.name}
                         {user.isActive && (
-                          <FontAwesomeIcon 
-                            icon={faCircleCheck} 
-                            className="text-green-500 text-xs" 
+                          <FontAwesomeIcon
+                            icon={faCircleCheck}
+                            className="text-green-500 text-xs"
                           />
                         )}
                       </div>
                       <div className="text-xs text-gray-500">{user.email}</div>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => toggleUserExpansion(user.id)}
                     className="p-2 text-gray-500 hover:text-gray-700"
                   >
@@ -135,42 +154,52 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                   {expandedUser === user.id && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
+                      animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
                       <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
                         <div className="flex items-center gap-2">
-                          <FontAwesomeIcon 
-                            icon={getRoleIcon(user.role)} 
-                            className={`text-sm ${getRoleColor(user.role).replace('bg-', 'text-').split(' ')[0]}`}
+                          <FontAwesomeIcon
+                            icon={getRoleIcon(user.role)}
+                            className={`text-sm ${
+                              getRoleColor(user.role)
+                                .replace("bg-", "text-")
+                                .split(" ")[0]
+                            }`}
                           />
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(
+                              user.role
+                            )}`}
+                          >
                             {getRoleLabel(user.role)}
                           </span>
                         </div>
                         <div className="text-xs text-gray-500">
                           Registro: {user.registrationDate}
                         </div>
-                        <div className="flex gap-2 pt-2">
-                          <motion.button
-                            onClick={() => onEdit(user)}
-                            whileTap={{ scale: 0.9 }}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs"
-                          >
-                            <FontAwesomeIcon icon={faEdit} size="xs" />
-                            <span>Editar</span>
-                          </motion.button>
-                          <motion.button
-                            onClick={() => onDelete(user)}
-                            whileTap={{ scale: 0.9 }}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs"
-                          >
-                            <FontAwesomeIcon icon={faTrashAlt} size="xs" />
-                            <span>Eliminar</span>
-                          </motion.button>
-                        </div>
+                        {currentUser?.role !== "teacher" && (
+                          <div className="flex gap-2 pt-2">
+                            <motion.button
+                              onClick={() => onEdit(user)}
+                              whileTap={{ scale: 0.9 }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs"
+                            >
+                              <FontAwesomeIcon icon={faEdit} size="xs" />
+                              <span>Editar</span>
+                            </motion.button>
+                            <motion.button
+                              onClick={() => onDelete(user)}
+                              whileTap={{ scale: 0.9 }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs"
+                            >
+                              <FontAwesomeIcon icon={faTrashAlt} size="xs" />
+                              <span>Eliminar</span>
+                            </motion.button>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -190,7 +219,7 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.95 }}
               onClick={onCreate}
-              className="fixed bottom-6 right-6 z-50 w-14 h-14 flex items-center justify-center bg-gradient-to-r from-green-600 to-green-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
+              className="fixed bottom-14 right-6 z-50 w-14 h-14 flex items-center justify-center bg-gradient-to-r from-green-600 to-green-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all"
             >
               <FontAwesomeIcon icon={faUserPlus} size="lg" />
             </motion.button>
@@ -228,7 +257,7 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-white shadow"
                             onError={(e) => {
                               if (!e.target.dataset.fallback) {
-                                e.target.src = '/img/default-avatar.png';
+                                e.target.src = "/img/default-avatar.png";
                                 e.target.dataset.fallback = "true";
                               }
                             }}
@@ -241,24 +270,34 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                           <div className="font-medium text-gray-800 flex items-center gap-1 text-sm sm:text-base">
                             {user.name}
                             {user.isActive && (
-                              <FontAwesomeIcon 
-                                icon={faCircleCheck} 
-                                className="text-green-500 text-xs" 
+                              <FontAwesomeIcon
+                                icon={faCircleCheck}
+                                className="text-green-500 text-xs"
                               />
                             )}
                           </div>
-                          <div className="text-xs text-gray-500">{user.email}</div>
+                          <div className="text-xs text-gray-500">
+                            {user.email}
+                          </div>
                         </div>
                       </div>
                     </td>
 
                     <td className="px-4 sm:px-6 py-3">
                       <div className="flex items-center gap-2">
-                        <FontAwesomeIcon 
-                          icon={getRoleIcon(user.role)} 
-                          className={`text-xs sm:text-sm ${getRoleColor(user.role).replace('bg-', 'text-').split(' ')[0]}`}
+                        <FontAwesomeIcon
+                          icon={getRoleIcon(user.role)}
+                          className={`text-xs sm:text-sm ${
+                            getRoleColor(user.role)
+                              .replace("bg-", "text-")
+                              .split(" ")[0]
+                          }`}
                         />
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.role)}`}>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(
+                            user.role
+                          )}`}
+                        >
                           {getRoleLabel(user.role)}
                         </span>
                       </div>
@@ -269,26 +308,34 @@ const UserManagementTable = ({ users, onEdit, onDelete, onCreate, isMobile }) =>
                     </td>
 
                     <td className="px-4 sm:px-6 py-3">
-                      <div className="flex justify-end gap-2 sm:gap-3">
-                        <motion.button
-                          onClick={() => onEdit(user)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-1.5 sm:p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-                          title="Editar usuario"
-                        >
-                          <FontAwesomeIcon icon={faEdit} className="text-sm" />
-                        </motion.button>
-                        <motion.button
-                          onClick={() => onDelete(user)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-1.5 sm:p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                          title="Eliminar usuario"
-                        >
-                          <FontAwesomeIcon icon={faTrashAlt} className="text-sm" />
-                        </motion.button>
-                      </div>
+                      {currentUser?.role !== "teacher" && (
+                        <div className="flex justify-end gap-2 sm:gap-3">
+                          <motion.button
+                            onClick={() => onEdit(user)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-1.5 sm:p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                            title="Editar usuario"
+                          >
+                            <FontAwesomeIcon
+                              icon={faEdit}
+                              className="text-sm"
+                            />
+                          </motion.button>
+                          <motion.button
+                            onClick={() => onDelete(user)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-1.5 sm:p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                            title="Eliminar usuario"
+                          >
+                            <FontAwesomeIcon
+                              icon={faTrashAlt}
+                              className="text-sm"
+                            />
+                          </motion.button>
+                        </div>
+                      )}
                     </td>
                   </motion.tr>
                 ))}

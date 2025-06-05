@@ -15,14 +15,17 @@ import {
   faSearch,
 } from "@fortawesome/free-solid-svg-icons";
 
-const SERVER_URL = "http://localhost:5000";
+const baseUrl = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace('/api', '') 
+  : "http://localhost:5000";
+
 const getAvatarUrl = (avatar) => {
   if (!avatar) return "/img/default-avatar.png";
-  return avatar.startsWith("http") ? avatar : `${SERVER_URL}${avatar}`;
+  return avatar.startsWith("http") ? avatar : `${baseUrl}${avatar}`;
 };
 
 export default function AdminDashboard() {
-  const { api, isAdmin } = useAuth();
+  const { api, currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
@@ -44,34 +47,74 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (currentUser) {
+      fetchUsers();
+    }
+  }, [currentUser]);
 
-  const fetchUsers = async () => {
+  async function fetchUsers() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/users");
-      const mappedUsers = response.data.map((u) => ({
-        id: u.UserID,
-        name: u.Name,
-        email: u.Email,
-        role: u.Role,
-        avatar: getAvatarUrl(u.Avatar),
-        registrationDate: new Date(u.RegistrationDate).toLocaleDateString(),
-        lastLogin: u.LastLogin
-          ? new Date(u.LastLogin).toLocaleString()
-          : "Nunca",
-        isActive: u.IsActive === 1,
-      }));
-      setUsers(mappedUsers);
-    } catch (err) {
-      setError("Error al obtener usuarios");
-      console.error(err);
+      if (!currentUser) {
+        console.warn("No hay usuario actual definido");
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
+
+      if (currentUser.role === "teacher") {
+        // Get students assigned to this teacher
+        const res = await api.get(
+          `/assignments/teacher/${currentUser.id}/students`
+        );
+        const studentsData = res.data;
+
+        // Transform the data to match the user structure
+        const transformedStudents = studentsData.map((student) => ({
+          id: student.StudentID,
+          name: student.StudentName.trim(),
+          email: student.StudentEmail,
+          role: student.StudentRole,
+
+          avatar: getAvatarUrl(student.StudentAvatar),
+          registrationDate: new Date(
+            student.RegistrationDate
+          ).toLocaleDateString(),
+        }));
+
+        // Remove duplicates (in case a student is in multiple courses)
+        const uniqueStudents = transformedStudents.filter(
+          (student, index, self) =>
+            index === self.findIndex((s) => s.id === student.id)
+        );
+
+        setUsers(uniqueStudents);
+      } else {
+        // Admin or other roles: show all users
+        const resUsers = await api.get("/users");
+        // Transform admin users data to match the same structure
+        const adminUsers = resUsers.data.map((user) => ({
+          id: user.UserID,
+          name: user.Name,
+          email: user.Email,
+          role: user.Role,
+
+          avatar: getAvatarUrl(user.Avatar),
+          registrationDate: new Date(
+            user.RegistrationDate
+          ).toLocaleDateString(),
+        }));
+        setUsers(adminUsers);
+      }
+    } catch (error) {
+      console.error("Error en fetchUsers:", error);
+      setError("Error al cargar los usuarios");
+      setUsers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleUserUpdate = async (updatedUser) => {
     try {
@@ -106,21 +149,23 @@ export default function AdminDashboard() {
 
   const tabs = [
     { label: "Usuarios", key: "users", icon: faUsers },
-    { label: "Cursos", key: "assignments", icon: faBook },
+    ...(currentUser?.role !== "teacher"
+      ? [{ label: "Cursos", key: "assignments", icon: faBook }]
+      : []),
     { label: "Estadísticas", key: "stats", icon: faChartLine },
   ];
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.role.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtro de búsqueda seguro, evita error si algún campo es undefined o no es string
+  const filteredUsers = users.filter((user) => {
+    const name = user.name?.toString().toLowerCase() || "";
+    const email = user.email?.toString().toLowerCase() || "";
+    const role = user.role?.toString().toLowerCase() || "";
+    const term = search.toLowerCase();
+    return name.includes(term) || email.includes(term) || role.includes(term);
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 pb-20">
-      {" "}
-      {/* padding bottom para navbar móvil */}
       {/* Header */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}
@@ -134,6 +179,7 @@ export default function AdminDashboard() {
           Gestión de usuarios, cursos y estadísticas
         </p>
       </motion.div>
+
       {/* Tabs Desktop */}
       {!isMobile && (
         <div className="flex flex-wrap gap-2 mb-6">
@@ -155,6 +201,7 @@ export default function AdminDashboard() {
           ))}
         </div>
       )}
+
       {/* Tabs Mobile fixed bottom */}
       {isMobile && (
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-2 z-50 shadow-md">
@@ -172,6 +219,7 @@ export default function AdminDashboard() {
           ))}
         </nav>
       )}
+
       {/* Content */}
       <AnimatePresence mode="wait">
         {activeTab === "users" && (
@@ -203,13 +251,22 @@ export default function AdminDashboard() {
                 Cargando usuarios...
               </div>
             ) : error ? (
-              <div className="text-red-600">{error}</div>
+              <div className="text-red-600 text-center">{error}</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-10 sm:py-20 text-gray-500">
+                No se encontraron usuarios.
+              </div>
             ) : (
               <UserManagementTable
                 users={filteredUsers}
-                onEdit={isAdmin ? setEditingUser : null}
-                onDelete={isAdmin ? setDeletingUser : null}
-                onCreate={isAdmin ? () => setShowCreateUserModal(true) : null}
+                currentUser={currentUser}
+                onEdit={setEditingUser}
+                onDelete={setDeletingUser}
+                onCreate={
+                  currentUser.role === "admin"
+                    ? () => setShowCreateUserModal(true)
+                    : null
+                }
                 isMobile={isMobile}
               />
             )}
@@ -222,9 +279,8 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-xl shadow-md p-4 sm:p-6 overflow-x-auto"
           >
-            <CourseAssignmentManagement isMobile={isMobile} />
+            <CourseAssignmentManagement />
           </motion.div>
         )}
 
@@ -234,35 +290,33 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white rounded-xl shadow-md p-0 overflow-hidden" // Eliminamos padding interno
           >
-            <StatsOverview isMobile={isMobile} />
+            <StatsOverview />
           </motion.div>
         )}
       </AnimatePresence>
-      {/* Modals */}
-      <AnimatePresence>
-        {isAdmin && editingUser && (
-          <EditUserModal
-            user={editingUser}
-            onClose={() => setEditingUser(null)}
-            onSave={handleUserUpdate}
-          />
-        )}
-        {isAdmin && deletingUser && (
-          <DeleteUsersModal
-            user={deletingUser}
-            onClose={() => setDeletingUser(null)}
-            onConfirm={handleUserDelete}
-          />
-        )}
-        {isAdmin && showCreateUserModal && (
-          <CreateUsersModal
-            onClose={() => setShowCreateUserModal(false)}
-            onSave={handleUserCreate}
-          />
-        )}
-      </AnimatePresence>
+
+      {/* Modales */}
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleUserUpdate}
+        />
+      )}
+      {deletingUser && (
+        <DeleteUsersModal
+          user={deletingUser}
+          onClose={() => setDeletingUser(null)}
+          onConfirm={handleUserDelete}
+        />
+      )}
+      {showCreateUserModal && (
+        <CreateUsersModal
+          onClose={() => setShowCreateUserModal(false)}
+          onSave={handleUserCreate}
+        />
+      )}
     </div>
   );
 }

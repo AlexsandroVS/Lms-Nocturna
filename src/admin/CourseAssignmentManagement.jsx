@@ -241,19 +241,6 @@ export default function CourseAssignmentManagement() {
               <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1 sm:mb-2">
                 Estudiante
               </label>
-              <div className="relative mb-1 sm:mb-2">
-                <input
-                  type="text"
-                  placeholder="Buscar estudiante..."
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-slate-300 pl-10 bg-white rounded-lg sm:rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-xs"
-                />
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="absolute left-3 sm:left-4 top-2.5 sm:top-3.5 text-gray-400"
-                />
-              </div>
               <select
                 value={selectedStudentId}
                 onChange={(e) => setSelectedStudentId(e.target.value)}

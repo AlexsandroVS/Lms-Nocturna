@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
@@ -145,10 +146,8 @@ const ModuleList = ({
     formData.append("content", newActivity.content);
     formData.append("deadline", newActivity.deadline);
     formData.append("maxSubmissions", newActivity.maxSubmissions);
-
-    console.log("📎 Archivos recibidos:", newActivity.files);
     for (let file of newActivity.files) {
-      formData.append("file", file); // 🔥 ¡Este debe llamarse "file" y repetirse!
+      formData.append("file", file); 
     }
 
     try {

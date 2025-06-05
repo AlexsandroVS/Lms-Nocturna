@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -37,7 +38,13 @@ const STATUS_CONFIG = {
   draft: { color: "bg-blue-100 text-blue-700", label: "Borrador" },
 };
 
-const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete, onRestrictedAccess }) => {
+const CoursesCard = ({
+  course,
+  isAdmin = false,
+  onEdit,
+  onDelete,
+  onRestrictedAccess,
+}) => {
   const navigate = useNavigate();
   const { api, currentUser } = useAuth();
   const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
@@ -51,7 +58,6 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete, onRestrictedAc
     description = "",
     icon = "book-open",
     status = "draft",
-    durationHours = 0,
     createdByName = "Desconocido",
     color = "#4F46E5",
   } = course || {};
@@ -61,35 +67,17 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete, onRestrictedAc
   const iconFa = ICON_MAP[icon] || faBookOpen;
 
   useEffect(() => {
-    const fetchCourseAverage = async () => {
-      const role = currentUser?.role;
-      const userId = currentUser?.id;
-
-      // No calcular promedio si es admin o teacher
-      if (!userId || role === "admin" || role === "teacher") return;
-
-      try {
-        const response = await api.get(`/averages/${id}/${userId}`);
-        const percentage = response.data?.courseAverage * 5;
-        if (!isNaN(percentage)) {
-          setCourseAverage(percentage);
-        }
-      } catch (error) {
-        console.error("Error al obtener el promedio del curso:", error);
-      }
-    };
-
-    fetchCourseAverage();
-  }, [api, currentUser?.id, currentUser?.role, id]);
-
-  useEffect(() => {
     const fetchEnrollments = async () => {
       if (currentUser?.role === "student") {
         try {
           const res = await api.get(
             `/enrollments/student/${currentUser.id}/courses`
           );
-          setEnrolledCourseIds(res.data.courseIds || []);
+
+          // Manejar ambos formatos de respuesta
+          const enrolledCourses = res.data?.courses || res.data || [];
+          const courseIds = enrolledCourses.map((course) => course.id);
+          setEnrolledCourseIds(courseIds);
         } catch (err) {
           console.error("Error al obtener inscripciones:", err);
         }
@@ -98,18 +86,50 @@ const CoursesCard = ({ course, isAdmin = false, onEdit, onDelete, onRestrictedAc
     fetchEnrollments();
   }, [api, currentUser]);
 
-const handleCardClick = () => {
-  const role = currentUser?.role;
-  const isEnrolled = enrolledCourseIds.includes(id);
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      if (currentUser?.role === "student") {
+        try {
+          const res = await api.get(
+            `/enrollments/student/${currentUser.id}/courses`
+          );
 
-  const canAccess = role === "admin" || role === "teacher" || isEnrolled;
+          // Manejar ambos casos: array de objetos o array de IDs
+          let courseIds = [];
 
-  if (canAccess) {
-    navigate(`/courses/${id}`);
-  } else if (typeof onRestrictedAccess === "function") {
-    onRestrictedAccess(course); 
-  }
-};
+          if (Array.isArray(res.data)) {
+            // Si es array de objetos (como en los logs)
+            if (res.data.length > 0 && typeof res.data[0] === "object") {
+              courseIds = res.data.map((course) => course.id);
+            }
+            // Si es array de números (IDs directos)
+            else if (typeof res.data[0] === "number") {
+              courseIds = res.data;
+            }
+          }
+
+       
+          setEnrolledCourseIds(courseIds);
+        } catch (err) {
+          console.error("Error al obtener inscripciones:", err);
+        }
+      }
+    };
+    fetchEnrollments();
+  }, [api, currentUser]);
+
+  const handleCardClick = () => {
+    const role = currentUser?.role;
+    const isEnrolled = enrolledCourseIds.includes(id);
+
+    const canAccess = role === "admin" || role === "teacher" || isEnrolled;
+
+    if (canAccess) {
+      navigate(`/courses/${id}`);
+    } else if (typeof onRestrictedAccess === "function") {
+      onRestrictedAccess();
+    }
+  };
 
   const handleAdminClick = (e, callback) => {
     e.preventDefault();
@@ -192,20 +212,6 @@ const handleCardClick = () => {
       <div className="flex-1 flex flex-col overflow-hidden z-10">
         {/* Metadata */}
         <div className="mb-4 space-y-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-            {durationHours > 0 && (
-              <span className="flex items-center gap-1 text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                <FontAwesomeIcon
-                  icon={faClock}
-                  className="text-[0.8em] opacity-70"
-                />
-                {durationHours}h
-              </span>
-            )}
-            <span className={`${statusColor} px-2.5 py-1 rounded-full text-xs`}>
-              {statusLabel}
-            </span>
-          </div>
           <span className="text-xs text-gray-400 block">
             Creado por: {createdByName}
           </span>

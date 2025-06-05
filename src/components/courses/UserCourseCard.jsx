@@ -58,7 +58,7 @@ export default function UserCourseCard({ course, average }) {
           <div className="flex justify-between items-center text-sm mt-2">
             <span className="font-medium flex items-center gap-1" style={{ color }}>
               <FontAwesomeIcon icon={courseIcon} />
-              {course.durationHours}h
+              
             </span>
             <span className="text-gray-400 text-xs truncate">
               Por {course.createdByName}

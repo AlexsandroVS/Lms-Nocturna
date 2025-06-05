@@ -3,7 +3,6 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPlus } from "@fortawesome/free-solid-svg-icons";
-import defaultAvatar from "../../../public/img/admin-avatar.jpg";
 
 const CreateUsersModal = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -11,12 +10,13 @@ const CreateUsersModal = ({ onClose, onSave }) => {
     email: "",
     password: "",
     role: "student", // Valor por defecto
-    avatar: null,    // Archivo para enviar si se selecciona
+    avatar: null, // Archivo para enviar si se selecciona
   });
   const [previewAvatar, setPreviewAvatar] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  const defaultAvatar = "/img/admin-avatar.pg";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -60,10 +60,10 @@ const CreateUsersModal = ({ onClose, onSave }) => {
       formDataToSend.append("email", formData.email);
       formDataToSend.append("password", formData.password);
       formDataToSend.append("role", formData.role);
-      
+
       // 📌 Establecer isActive en falso y lastLogin en null por defecto
       formDataToSend.append("isActive", false);
-      formDataToSend.append("lastLogin", "");  // o null, dependiendo de tu backend
+      formDataToSend.append("lastLogin", ""); // o null, dependiendo de tu backend
 
       if (formData.avatar) {
         formDataToSend.append("avatar", formData.avatar);
@@ -71,10 +71,12 @@ const CreateUsersModal = ({ onClose, onSave }) => {
 
       // Llamar a onSave pasándole formDataToSend
       await onSave(formDataToSend);
-      
     } catch (err) {
       console.error(err);
-      setError("Error al crear el usuario: " + (err.response?.data?.message || err.message));
+      setError(
+        "Error al crear el usuario: " +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
       setLoading(false);
     }
@@ -100,9 +102,7 @@ const CreateUsersModal = ({ onClose, onSave }) => {
           Crear Usuario
         </h2>
 
-        {error && (
-          <p className="text-red-500 text-center mb-4">{error}</p>
-        )}
+        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
         {/* Formulario */}
         <div className="space-y-5">
@@ -162,9 +162,6 @@ const CreateUsersModal = ({ onClose, onSave }) => {
             </motion.select>
           </div>
 
-          {/* No mostramos campos isActive ni lastLogin en el UI, 
-              pero los añadimos por defecto en el handleSubmit. */}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Avatar
@@ -213,7 +210,9 @@ const CreateUsersModal = ({ onClose, onSave }) => {
             className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
             disabled={loading}
           >
-            {loading ? "Creando..." : (
+            {loading ? (
+              "Creando..."
+            ) : (
               <>
                 <FontAwesomeIcon icon={faPlus} className="mr-2" />
                 Crear

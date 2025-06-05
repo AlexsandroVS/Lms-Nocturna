@@ -169,19 +169,15 @@ const CoursePage = () => {
   return (
     <div className="w-screen  no-scrollbar min-h-screen overflow-x-hidden bg-white scrollbar-hidden">
       {courseWithProgress && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="px-4 sm:px-6"
-        >
+        <div className="px-4 sm:px-6">
           <CourseHeader
             course={courseWithProgress}
+            userRole={currentUser.role}
             color={courseColor}
             title={course.title}
             courseAverage={((averages?.courseAverage || 0) * 5).toFixed(0)}
           />
-        </motion.div>
+        </div>
       )}
 
       <div className="flex flex-col md:flex-row gap-4 md:gap-6 mt-4 md:mt-6 px-2 sm:px-3 pb-10 relative">
@@ -212,7 +208,8 @@ const CoursePage = () => {
                 <h2 className="text-lg md:text-xl font-bold text-gray-800">
                   Módulos del Curso
                 </h2>
-                {currentUser?.role === "admin" && (
+                {(currentUser?.role === "admin" ||
+                  currentUser?.role === "teacher") && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}

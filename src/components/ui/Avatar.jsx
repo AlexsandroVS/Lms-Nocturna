@@ -1,8 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
-import defaultAvatar from "../../../public/img/admin-avatar.jpg";
-
-const SERVER_URL = "http://localhost:5000";
+    
+  const defaultAvatar = "/img/admin-avatar.pg";
 
 const Avatar = ({ user, size = "md", className = "" }) => {
   const [avatarUrl, setAvatarUrl] = useState(defaultAvatar);
@@ -15,16 +14,21 @@ const Avatar = ({ user, size = "md", className = "" }) => {
     xl: "w-32 h-32 text-4xl"
   };
 
+  // Solución óptima para manejar las URLs de imágenes
+  const baseUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : "http://localhost:5000";
+
   useEffect(() => {
     if (user?.avatar) {
       const url = user.avatar.startsWith("http") 
         ? user.avatar 
-        : `${SERVER_URL}${user.avatar}`;
+        : `${baseUrl}${user.avatar}`;
       setAvatarUrl(url);
     } else {
       setAvatarUrl(defaultAvatar);
     }
-  }, [user]);
+  }, [user, baseUrl]);
 
   return (
     <div className={`relative ${sizeClasses[size]} ${className}`}>

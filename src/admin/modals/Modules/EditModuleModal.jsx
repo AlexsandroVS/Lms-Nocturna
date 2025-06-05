@@ -6,14 +6,18 @@ import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 const EditModuleModal = ({ module, onClose, onSave }) => {
   const [title, setTitle] = useState(module?.title || "");
-  const [order, setOrder] = useState(module?.ModuleOrder || 1);
+  const [order, setOrder] = useState(module?.ModuleOrder ?? 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (module) {
-      setTitle(module.title);
-      setOrder(module.ModuleOrder);
+      setTitle(module.title || "");
+      setOrder(module.ModuleOrder ?? 1);
+    } else {
+      // Manejar el caso donde module es null/undefined
+      setTitle("");
+      setOrder(1);
     }
   }, [module]);
 

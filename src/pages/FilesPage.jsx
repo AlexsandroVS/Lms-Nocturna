@@ -66,7 +66,7 @@ const FilesPage = () => {
         );
         const allSubmissions = submissionsResp.data;
 
-        // 3. Agrupar por usuario
+        // 3. Agrupar por usuario (eliminando duplicados)
         const usersMap = new Map();
 
         allSubmissions.forEach((sub) => {
@@ -99,20 +99,29 @@ const FilesPage = () => {
         const usersWithSub = Array.from(usersMap.values());
         setUsersWithSubmissions(usersWithSub);
 
-        // 4. Obtener inscripciones (para detectar usuarios sin entrega)
+        // 4. Obtener inscripciones (eliminando duplicados)
         const enrollmentsResp = await api.get(
           `/enrollments?courseId=${courseId}`
         );
-        const allStudents = enrollmentsResp.data.map((e) => ({
-          UserID: e.UserID || e.StudentID,
-          Name: e.Name || e.StudentName,
-          Email: e.Email || e.StudentEmail || "",
-        }));
+
+        // Procesamiento mejorado para eliminar duplicados
+        const uniqueStudentsMap = new Map();
+        enrollmentsResp.data.forEach((e) => {
+          const userId = e.UserID || e.StudentID;
+          if (!uniqueStudentsMap.has(userId)) {
+            uniqueStudentsMap.set(userId, {
+              UserID: userId,
+              Name: e.Name || e.StudentName,
+              Email: e.Email || e.StudentEmail || "",
+            });
+          }
+        });
 
         const usersWithIds = new Set(usersWithSub.map((u) => u.user.UserID));
-        const usersWithoutSub = allStudents.filter(
+        const usersWithoutSub = Array.from(uniqueStudentsMap.values()).filter(
           (u) => !usersWithIds.has(u.UserID)
         );
+
         setUsersWithoutSubmissions(usersWithoutSub);
       } catch (err) {
         console.error("Error fetching optimized submissions:", err);
@@ -162,6 +171,12 @@ const FilesPage = () => {
       }
 
       const parsedScore = parseFloat(tempGrade);
+
+      // Validación para que el score no sea mayor a 20
+      if (parsedScore > 20) {
+        alert("La calificación no puede ser mayor a 20");
+        return;
+      }
 
       await api.patch(`/submissions/${submissionId}/score`, {
         score: parsedScore,
@@ -370,7 +385,7 @@ const FilesPage = () => {
               <div className="divide-y divide-slate-100 w-full">
                 {filteredWithSubmissions.map((userData) => (
                   <motion.div
-                    key={`user-container-${userData.user.UserID}`}
+                    key={`user-container-${userData.user.id}`}
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
@@ -470,9 +485,17 @@ const FilesPage = () => {
                                             max="20"
                                             step="0.1"
                                             value={tempGrade}
-                                            onChange={(e) =>
-                                              setTempGrade(e.target.value)
-                                            }
+                                            onChange={(e) => {
+                                              const value = e.target.value;
+                                              // Validar que no sea mayor a 20
+                                              if (
+                                                value === "" ||
+                                                (parseFloat(value) <= 20 &&
+                                                  parseFloat(value) >= 0)
+                                              ) {
+                                                setTempGrade(value);
+                                              }
+                                            }}
                                             className="w-16 sm:w-20 p-1 rounded-lg bg-slate-50 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all border border-slate-200"
                                           />
                                           <button

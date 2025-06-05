@@ -44,7 +44,7 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
     return faFile;
   };
   const [files, setFiles] = useState([]);
-
+  const MAX_FILES = 5;
   const [loading, setLoading] = useState({ upload: false, general: false });
   const [uploadError, setUploadError] = useState(null);
   const [adminFiles, setAdminFiles] = useState([]);
@@ -518,13 +518,22 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Dentro del return, reemplaza el input y agrega los mensajes */}
               <div className="relative group">
                 <input
                   type="file"
                   multiple
-                  onChange={(e) =>
-                    setFiles((prev) => [...prev, ...Array.from(e.target.files)])
-                  }
+                  onChange={(e) => {
+                    const selectedFiles = Array.from(e.target.files);
+                    if (files.length + selectedFiles.length > MAX_FILES) {
+                      setUploadError(
+                        `No puedes subir más de ${MAX_FILES} archivos por entrega.`
+                      );
+                      return;
+                    }
+                    setFiles((prev) => [...prev, ...selectedFiles]);
+                    setUploadError(null);
+                  }}
                   accept=".pdf,.doc,.docx,.pptx,.mp4,.webm"
                   className="w-full opacity-0 absolute inset-0 cursor-pointer"
                   id="fileInput"
@@ -540,34 +549,39 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
                       className="text-3xl text-blue-400 mb-2"
                     />
                     {files.length > 0 ? (
-                      <ul className="text-sm text-gray-600 space-y-1">
-                        {files.map((f, i) => (
-                          <li key={i} className="truncate">
-                            {f.name}
-                          </li>
-                        ))}
-                      </ul>
+                      <>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          {files.slice(0, 3).map((f, i) => (
+                            <li key={i} className="truncate">
+                              {f.name}
+                            </li>
+                          ))}
+                          {files.length > 3 && (
+                            <li className="text-gray-400">
+                              +{files.length - 3} más...
+                            </li>
+                          )}
+                        </ul>
+                        <div className="text-xs text-blue-500">
+                          {files.length}/{MAX_FILES} archivos
+                        </div>
+                      </>
                     ) : (
-                      <p className="text-gray-600 font-medium">
-                        Haz clic o arrastra tus archivos aquí
-                      </p>
+                      <>
+                        <p className="text-gray-600 font-medium">
+                          Haz clic o arrastra tus archivos aquí
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Tipos permitidos: PDF, Word, MP4, WebM
+                        </p>
+                      </>
                     )}
-                    <p className="text-sm text-gray-400">
-                      Tipos permitidos: PDF, Word, MP4, WebM
-                    </p>
                   </div>
                 </label>
 
-                {/* 🆕 Botón adicional para agregar archivos */}
-                <div className="text-center mt-2">
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("fileInput").click()}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    + Agregar más archivos
-                  </button>
-                </div>
+                <p className="text-sm text-gray-400 mt-2 text-center">
+                  Máximo {MAX_FILES} archivos por entrega (50MB c/u)
+                </p>
               </div>
 
               {uploadError && (
@@ -682,10 +696,7 @@ const ActivityDetailsPanel = ({ activity, courseId, moduleId }) => {
                                     </span>
                                   </div>
                                   <div className="flex-1">
-                                    <div className="w-full bg-gray-200 rounded-full h-2">
-                                      
-                                    </div>
-                                  
+                                    <div className="w-full bg-gray-200 rounded-full h-2"></div>
                                   </div>
                                 </>
                               ) : (

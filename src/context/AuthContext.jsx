@@ -16,11 +16,10 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true); // Estado de carga
 
-
   const location = useLocation();
 
   useEffect(() => {
-    const publicRoutes = ["/login", "/register", "/"]; 
+    const publicRoutes = ["/login", "/register", "/"];
     if (!publicRoutes.includes(location.pathname)) {
       initializeAuth();
     } else {
@@ -42,6 +41,23 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false); // Finaliza la carga
     }
+  };
+
+  const updateToken = (newToken) => {
+    // Si usas cookies no HTTPOnly, guarda el token así:
+    document.cookie = `token=${newToken}; path=/; max-age=${
+      7 * 24 * 60 * 60
+    }; secure; samesite=strict`;
+
+    // O guarda en localStorage si prefieres:
+    // localStorage.setItem("token", newToken);
+
+    // Si necesitas actualizar currentUser a partir del token:
+    const payload = JSON.parse(atob(newToken.split(".")[1]));
+    setCurrentUser((prev) => ({
+      ...prev,
+      email: payload.email, // opcional, según qué datos metas en el JWT
+    }));
   };
 
   const updateUserAvatar = (newAvatar) => {
@@ -98,6 +114,7 @@ export function AuthProvider({ children }) {
     setCurrentUser,
     login,
     updateUserAvatar,
+    updateToken,
     logout,
     isAdmin: currentUser?.role === "admin",
     isTeacher: currentUser?.role === "teacher",

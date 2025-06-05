@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import './chart.css'
+import './CustomDatepicker.css';
 import "keen-slider/keen-slider.min.css";
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -16,13 +16,17 @@ const iconMap = {
   "graduation-cap": faGraduationCap,
 };
 
-const SERVER_URL = "http://localhost:5000";
-
 export default function CourseCard({ course, onClick }) {
   const courseIcon = iconMap[course.icon] || faBook;
+  
+  // Solución óptima para manejar las URLs de imágenes
+  const baseUrl = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    : "http://localhost:5000";
+  
   const imageUrl = course.image?.startsWith("http")
     ? course.image
-    : `${SERVER_URL}${course.image}`;
+    : `${baseUrl}${course.image}`;
 
   return (
     <motion.div
@@ -36,6 +40,9 @@ export default function CourseCard({ course, onClick }) {
           src={imageUrl}
           alt={course.title}
           className="w-full h-full object-cover object-center"
+          onError={(e) => {
+            e.target.src = '/placeholder-course.jpg'; // Imagen de respaldo
+          }}
         />
       </div>
 
@@ -58,7 +65,6 @@ export default function CourseCard({ course, onClick }) {
               />
               {course.category}
             </span>
-            <span>{course.durationHours}h</span>
           </div>
           <div className="text-[10px] text-gray-400 truncate">
             Por {course.createdByName}

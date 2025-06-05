@@ -47,7 +47,6 @@ export const CreateCourseModal = ({ onClose, onSave, currentUserId }) => {
     description: "",
     status: "active",
     icon: "book-open",
-    durationHours: 0,
     color: COLOR_PALETTE[0],
     createdBy: currentUserId,
     category: "",
@@ -141,24 +140,9 @@ export const CreateCourseModal = ({ onClose, onSave, currentUserId }) => {
                   className={inputClass}
                 >
                   <option value="active">Activo</option>
-                  <option value="draft">Borrador</option>
-                  <option value="archived">Archivado</option>
+                  <option value="inactive">Inactivo</option>
+              
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Duración (horas)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={newCourse.durationHours}
-                  onChange={(e) =>
-                    setNewCourse((p) => ({ ...p, durationHours: e.target.value }))
-                  }
-                  className={inputClass}
-                />
               </div>
             </div>
 

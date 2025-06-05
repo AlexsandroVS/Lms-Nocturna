@@ -31,7 +31,12 @@ const SearchResultsPage = () => {
         const enrollmentRes = await api.get(
           `/enrollments/student/${currentUser.id}/courses`
         );
-        setEnrolledCourseIds(enrollmentRes.data.courseIds || []);
+
+        // Manejar ambos formatos de respuesta
+        const enrolledCourses =
+          enrollmentRes.data?.courses || enrollmentRes.data || [];
+        const courseIds = enrolledCourses.map((course) => course.id);
+        setEnrolledCourseIds(courseIds);
 
         // 2. Buscar cursos exactos por el query
         const exactResults = await api.get(

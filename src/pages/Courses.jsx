@@ -15,41 +15,42 @@ export default function Courses() {
 
   useEffect(() => {
     const fetchEnrolledCourses = async () => {
-      try {
-        const [enrollRes, coursesRes] = await Promise.all([
-          api.get(`/enrollments/student/${currentUser.id}/courses`),
-          api.get("/courses"),
-        ]);
+  try {
+    const [enrollRes, coursesRes] = await Promise.all([
+      api.get(`/enrollments/student/${currentUser.id}/courses`),
+      api.get("/courses"),
+    ]);
 
-        const enrolledCourseIds = enrollRes.data.courseIds || [];
+    const enrolledCourses = enrollRes.data.courses || [];
 
-        const filteredCourses = coursesRes.data.filter((course) =>
-          enrolledCourseIds.includes(course.id)
-        );
+    const filteredCourses = coursesRes.data.filter((course) =>
+      enrolledCourses.some((enrolled) => enrolled.id === course.id)
+    );
 
-        const averageResults = {};
-        await Promise.all(
-          filteredCourses.map(async (course) => {
-            try {
-              const res = await api.get(
-                `/averages/${course.id}courseid/${currentUser.id}userid`
-              );
-              averageResults[course.id] = res.data?.courseAverage || null;
-            } catch {
-              averageResults[course.id] = null;
-            }
-          })
-        );
+    const averageResults = {};
+    await Promise.all(
+      filteredCourses.map(async (course) => {
+        try {
+          const res = await api.get(
+            `/averages/${course.id}courseid/${currentUser.id}userid`
+          );
+          averageResults[course.id] = res.data?.courseAverage || null;
+        } catch {
+          averageResults[course.id] = null;
+        }
+      })
+    );
 
-        setUserCourses(filteredCourses);
-        setAverages(averageResults);
-      } catch (err) {
-        console.error(err);
-        setError("Error al obtener los cursos.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    setUserCourses(filteredCourses);
+    setAverages(averageResults);
+  } catch (err) {
+    console.error(err);
+    setError("Error al obtener los cursos.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     if (currentUser && !isAdmin) {
       fetchEnrolledCourses();

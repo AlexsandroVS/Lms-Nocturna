@@ -58,7 +58,6 @@ export const EditCourseModal = ({ course, onClose, onSave }) => {
     description: "",
     status: "active",
     icon: "book-open",
-    durationHours: 0,
     color: COLOR_PALETTE[0],
     category: "",
     image: null,
@@ -74,7 +73,6 @@ export const EditCourseModal = ({ course, onClose, onSave }) => {
         description: course.description || "",
         status: course.status || "draft",
         icon: course.icon || "book-open",
-        durationHours: course.durationHours || 0,
         color: course.color || COLOR_PALETTE[0],
         category: course.category || "",
         image: course.image || null,
@@ -210,24 +208,6 @@ export const EditCourseModal = ({ course, onClose, onSave }) => {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Duración (horas)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={courseData.durationHours}
-                  onChange={(e) =>
-                    setCourseData((p) => ({
-                      ...p,
-                      durationHours: e.target.value,
-                    }))
-                  }
-                  className={inputClass}
-                />
               </div>
             </div>
 
